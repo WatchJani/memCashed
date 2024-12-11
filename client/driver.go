@@ -5,19 +5,33 @@ import (
 	"encoding/binary"
 )
 
+var EmptyByte []byte = []byte{}
+
 // Operation - 1byte [x]
 // Key length - 1byte [x]
 // TTL - 4byte [x]
 // body length - 4byte
 // End of req - \r\n 2byte
-func Req(key, value []byte, ttl int) ([]byte, error) {
+func Set(key, value []byte, ttl int) ([]byte, error) {
+	return Encode('S', key, value, ttl)
+}
+
+func Get(key []byte) ([]byte, error) {
+	return Encode('G', key, EmptyByte, 0)
+}
+
+func Delete(key []byte) ([]byte, error) {
+	return Encode('D', key, EmptyByte, 0)
+}
+
+func Encode(operation byte, key, value []byte, ttl int) ([]byte, error) {
 	var (
 		buf bytes.Buffer
 		err error
 	)
 
 	//set operation
-	if err = buf.WriteByte('S'); err != nil {
+	if err = buf.WriteByte(operation); err != nil {
 		// fmt.Println("Error writing operation:", err)
 		return nil, err
 	}
@@ -55,7 +69,4 @@ func Req(key, value []byte, ttl int) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-
-	// fmt.Printf("Header: %v\n", buf.String())
-	// fmt.Printf("Header length: %d\n", len(buf.Bytes()))
 }

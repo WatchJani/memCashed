@@ -13,6 +13,6 @@ func BenchmarkDriver(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		Req(key, value, ttl)
+		Set(key, value, ttl)
 	}
 }

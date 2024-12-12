@@ -24,6 +24,15 @@ func Delete(key []byte) ([]byte, error) {
 	return Encode('D', key, EmptyByte, 0)
 }
 
+// var bodyLength uint32 = 4
+
+// 	bloc := []byte{
+// 		byte(bodyLength & 0xFF),
+// 		byte((bodyLength >> 8) & 0xFF),
+// 		byte((bodyLength >> 16) & 0xFF),
+// 		byte((bodyLength >> 24) & 0xFF),
+// 	}
+
 func Encode(operation byte, key, value []byte, ttl int) ([]byte, error) {
 	var (
 		buf bytes.Buffer

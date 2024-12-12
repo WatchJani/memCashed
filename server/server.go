@@ -5,12 +5,16 @@ import (
 	"io"
 	"log"
 	"net"
+	"root/memory_allocator"
 )
+
+const HeaderSize = 10
 
 type Server struct {
 	Addr       string
 	MaxConn    int
 	ActiveConn int
+	Slab       memory_allocator.SlabManager
 }
 
 func (s *Server) Run() error {
@@ -45,11 +49,10 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 	}()
 
-	// headerSize := 10
-	readBuffer := make([]byte, 10)
+	readBuffer := make([]byte, HeaderSize)
 
 	for {
-		n, err := conn.Read(readBuffer)
+		_, err := conn.Read(readBuffer)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
@@ -58,34 +61,23 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		header := readBuffer[:n]
+		header := readBuffer
 		operation, keyLength, ttl, bodyLength := Decode(header)
 		fmt.Println("operation:", operation)
-		// fmt.Println("key length:", keyLength)
 		fmt.Println("ttl", ttl)
-		// fmt.Println("body length", bodyLength)
 
-		// // bodyLength := int(readBuffer[20])
-		// remainingBody := bodyLength - (n - headerSize)
+		bodyBuffer := make([]byte, bodyLength+keyLength) //switch with real allocator slab
 
-		// if remainingBody > 0 {
-		bodyBuffer := make([]byte, bodyLength+keyLength)
+		n, err := conn.Read(bodyBuffer)
+		if err != nil {
+			if err != io.EOF {
+				log.Println("Error reading from connection:", err)
+			}
 
-		// copy(bodyBuffer, readBuffer[headerSize:n])
-
-		_, err = conn.Read(bodyBuffer)
-		if err != nil && err != io.EOF {
-			log.Println("Error reading body:", err)
+			break
 		}
 
 		fmt.Println("Header:", header)
-		fmt.Println("Body:", bodyBuffer)
-		// } else {
-		// 	bodyBuffer := make([]byte, n-headerSize)
-		// 	copy(bodyBuffer, readBuffer[headerSize:n])
-
-		// 	fmt.Println("Header:", header)
-		// 	fmt.Println("Body:", bodyBuffer)
-		// }
+		fmt.Println("Body:", bodyBuffer[:n])
 	}
 }

@@ -5,6 +5,35 @@ import (
 	"sync"
 )
 
+type SlabManager struct {
+	slabs []Slab
+}
+
+func NewSlabManager(slabs []Slab) SlabManager {
+	return SlabManager{
+		slabs: slabs,
+	}
+}
+
+func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
+	low, high := 0, len(s.slabs)-1
+	result := -1
+
+	slabs := s.slabs
+
+	for low <= high {
+		mid := low + (high-low)/2
+		if slabs[mid].slabSize > dataSize {
+			result = mid
+			high = mid - 1
+		} else {
+			low = mid + 1
+		}
+	}
+
+	return &slabs[result]
+}
+
 type Slab struct {
 	slabSize    int
 	freeList    stack.Stack[[]byte]

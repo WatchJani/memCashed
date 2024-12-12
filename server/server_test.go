@@ -15,6 +15,7 @@ func Benchmark(b *testing.B) {
 	SenderCh := make(chan []byte)
 	port := ":5000"
 
+	//Workers
 	for range numberOfConnection {
 		go func() {
 			conn, err := net.Dial("tcp", port)

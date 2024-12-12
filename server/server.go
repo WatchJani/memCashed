@@ -62,7 +62,7 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 
 		header := readBuffer
-		_, keyLength, _, bodyLength := Decode(header)
+		operation, keyLength, _, bodyLength := Decode(header)
 		// fmt.Println("operation:", operation)
 		// fmt.Println("ttl", ttl)
 
@@ -79,6 +79,17 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			}
 
 			break
+		}
+
+		switch operation {
+		case 'S':
+
+		case 'D':
+
+		case 'G':
+
+		default:
+			return
 		}
 
 		// fmt.Println("Header:", header)

@@ -19,16 +19,16 @@ func NewSlabManager(slabs []Slab) SlabManager {
 	}
 }
 
+// test system
 func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
 	low, high := 0, len(s.slabs)-1
-	// result := -1
-	result := 0
+	result := high
 
 	slabs := s.slabs
 
 	for low <= high {
 		mid := low + (high-low)/2
-		if slabs[mid].slabSize > dataSize {
+		if slabs[mid].slabSize >= dataSize {
 			result = mid
 			high = mid - 1
 		} else {

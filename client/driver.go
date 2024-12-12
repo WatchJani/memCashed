@@ -32,7 +32,6 @@ func Encode(operation byte, key, value []byte, ttl int) ([]byte, error) {
 
 	//set operation
 	if err = buf.WriteByte(operation); err != nil {
-		// fmt.Println("Error writing operation:", err)
 		return nil, err
 	}
 
@@ -40,7 +39,6 @@ func Encode(operation byte, key, value []byte, ttl int) ([]byte, error) {
 	keyLength := uint8(len(key))
 	err = binary.Write(&buf, binary.LittleEndian, keyLength)
 	if err != nil {
-		// fmt.Println("Error writing key length:", err)
 		return nil, err
 	}
 

@@ -45,8 +45,8 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 	}()
 
-	headerSize := 24
-	readBuffer := make([]byte, 1024)
+	// headerSize := 10
+	readBuffer := make([]byte, 10)
 
 	for {
 		n, err := conn.Read(readBuffer)
@@ -58,28 +58,34 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		header := readBuffer[:headerSize]
-		bodyLength := int(readBuffer[20])
-		remainingBody := bodyLength - (n - headerSize)
+		header := readBuffer[:n]
+		operation, keyLength, ttl, bodyLength := Decode(header)
+		fmt.Println("operation:", operation)
+		// fmt.Println("key length:", keyLength)
+		fmt.Println("ttl", ttl)
+		// fmt.Println("body length", bodyLength)
 
-		if remainingBody > 0 {
-			bodyBuffer := make([]byte, bodyLength)
+		// // bodyLength := int(readBuffer[20])
+		// remainingBody := bodyLength - (n - headerSize)
 
-			copy(bodyBuffer, readBuffer[headerSize:n])
+		// if remainingBody > 0 {
+		bodyBuffer := make([]byte, bodyLength+keyLength)
 
-			_, err := conn.Read(bodyBuffer[n-headerSize:])
-			if err != nil && err != io.EOF {
-				log.Println("Error reading body:", err)
-			}
+		// copy(bodyBuffer, readBuffer[headerSize:n])
 
-			fmt.Println("Header:", header)
-			fmt.Println("Body:", bodyBuffer)
-		} else {
-			bodyBuffer := make([]byte, n-headerSize)
-			copy(bodyBuffer, readBuffer[headerSize:n])
-
-			fmt.Println("Header:", header)
-			fmt.Println("Body:", bodyBuffer)
+		_, err = conn.Read(bodyBuffer)
+		if err != nil && err != io.EOF {
+			log.Println("Error reading body:", err)
 		}
+
+		fmt.Println("Header:", header)
+		fmt.Println("Body:", bodyBuffer)
+		// } else {
+		// 	bodyBuffer := make([]byte, n-headerSize)
+		// 	copy(bodyBuffer, readBuffer[headerSize:n])
+
+		// 	fmt.Println("Header:", header)
+		// 	fmt.Println("Body:", bodyBuffer)
+		// }
 	}
 }

@@ -62,9 +62,9 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 
 		header := readBuffer
-		operation, keyLength, ttl, bodyLength := Decode(header)
-		fmt.Println("operation:", operation)
-		fmt.Println("ttl", ttl)
+		_, keyLength, _, bodyLength := Decode(header)
+		// fmt.Println("operation:", operation)
+		// fmt.Println("ttl", ttl)
 
 		slabBlock, err := s.Slab.ChoseSlab(int(bodyLength + keyLength)).AllocateMemory()
 		if err != nil {
@@ -72,7 +72,7 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		n, err := conn.Read(slabBlock)
+		_, err = conn.Read(slabBlock)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
@@ -81,7 +81,7 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		fmt.Println("Header:", header)
-		fmt.Println("Body:", slabBlock[:n])
+		// fmt.Println("Header:", header)
+		// fmt.Println("Body:", slabBlock[:n])
 	}
 }

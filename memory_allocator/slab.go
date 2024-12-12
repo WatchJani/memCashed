@@ -21,7 +21,8 @@ func NewSlabManager(slabs []Slab) SlabManager {
 
 func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
 	low, high := 0, len(s.slabs)-1
-	result := -1
+	// result := -1
+	result := 0
 
 	slabs := s.slabs
 

@@ -9,6 +9,10 @@ type SlabManager struct {
 	slabs []Slab
 }
 
+func (s *SlabManager) GetSlabIndex(index int) *Slab {
+	return &s.slabs[index]
+}
+
 func NewSlabManager(slabs []Slab) SlabManager {
 	return SlabManager{
 		slabs: slabs,
@@ -41,6 +45,10 @@ type Slab struct {
 	pagePointer int
 	sync.RWMutex
 	*Allocator
+}
+
+func (s *Slab) GetCurrentPage() []byte {
+	return s.currentPage
 }
 
 func NewSlab(slabSize int, allocator *Allocator) Slab {

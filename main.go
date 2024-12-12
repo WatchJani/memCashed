@@ -40,6 +40,9 @@ func main() {
 		slabAllocator[i] = memory_allocator.NewSlab(slabCapacity[i], newAllocator)
 	}
 
+	memory, _ := slabAllocator[0].AllocateMemory()
+	memory[0] = 'a'
+
 	s := server.Server{
 		Addr:    Port,
 		MaxConn: MaxConnection,

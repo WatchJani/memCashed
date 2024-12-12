@@ -66,9 +66,13 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		fmt.Println("operation:", operation)
 		fmt.Println("ttl", ttl)
 
-		bodyBuffer := make([]byte, bodyLength+keyLength) //switch with real allocator slab
+		slabBlock, err := s.Slab.ChoseSlab(int(bodyLength + keyLength)).AllocateMemory()
+		if err != nil {
+			log.Fatal(err)
+			break
+		}
 
-		n, err := conn.Read(bodyBuffer)
+		n, err := conn.Read(slabBlock)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
@@ -78,6 +82,6 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 
 		fmt.Println("Header:", header)
-		fmt.Println("Body:", bodyBuffer[:n])
+		fmt.Println("Body:", slabBlock[:n])
 	}
 }

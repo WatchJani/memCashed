@@ -1,26 +1,32 @@
 package memory_allocator
 
 import (
+	"root/link_list"
 	"root/stack"
 	"sync"
 )
 
 type SlabManager struct {
 	slabs []Slab
+	lru   []link_list.DLL
 }
 
 func (s *SlabManager) GetSlabIndex(index int) *Slab {
 	return &s.slabs[index]
 }
 
+func (s *SlabManager) GetLRUIndex(index int) *link_list.DLL {
+	return &s.lru[index]
+}
+
 func NewSlabManager(slabs []Slab) SlabManager {
 	return SlabManager{
 		slabs: slabs,
+		lru:   make([]link_list.DLL, len(slabs)),
 	}
 }
 
-// test system
-func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
+func (s *SlabManager) GetIndex(dataSize int) int {
 	low, high := 0, len(s.slabs)-1
 	result := high
 
@@ -36,7 +42,11 @@ func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
 		}
 	}
 
-	return &slabs[result]
+	return result
+}
+
+func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
+	return &s.slabs[s.GetIndex(dataSize)]
 }
 
 type Slab struct {

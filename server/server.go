@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"root/hash_table"
 	"root/memory_allocator"
 )
 
@@ -15,6 +16,7 @@ type Server struct {
 	MaxConn    int
 	ActiveConn int
 	Slab       memory_allocator.SlabManager
+	*hash_table.Engine
 }
 
 func (s *Server) Run() error {
@@ -49,10 +51,10 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 	}()
 
-	readBuffer := make([]byte, HeaderSize)
+	header := make([]byte, HeaderSize)
 
 	for {
-		_, err := conn.Read(readBuffer)
+		_, err := conn.Read(header)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
@@ -61,18 +63,18 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		header := readBuffer
-		operation, keyLength, _, bodyLength := Decode(header)
+		operation, keyLength, ttl, bodyLength := Decode(header)
 		// fmt.Println("operation:", operation)
 		// fmt.Println("ttl", ttl)
 
-		slabBlock, err := s.Slab.ChoseSlab(int(bodyLength + keyLength)).AllocateMemory()
+		slabManager := s.Slab.ChoseSlab(int(bodyLength + keyLength))
+		slabBlock, err := slabManager.AllocateMemory()
 		if err != nil {
 			log.Fatal(err)
 			break
 		}
 
-		_, err = conn.Read(slabBlock)
+		n, err := conn.Read(slabBlock)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
@@ -83,9 +85,17 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 
 		switch operation {
 		case 'S':
+			//pointer on key
+			key := slabBlock[:keyLength]
+			// fmt.Println("key", key)
 
+			//pointer on field //real data
+			field := slabBlock[keyLength:n]
+			// fmt.Println("field", field)
+			// slabManager.
+			s.Insert(key, field, ttl)
 		case 'D':
-
+			
 		case 'G':
 
 		default:

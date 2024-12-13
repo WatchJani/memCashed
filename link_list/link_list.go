@@ -1,10 +1,14 @@
 package link_list
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 type DLL struct {
 	root *Node
 	last *Node
+	sync.RWMutex
 }
 
 type Node struct {
@@ -14,6 +18,9 @@ type Node struct {
 }
 
 func (dll *DLL) Inset(value int) *Node {
+	dll.Lock()
+	defer dll.Unlock()
+
 	newNode, root := &Node{}, dll.root
 
 	if dll.root != nil {
@@ -30,6 +37,9 @@ func (dll *DLL) Inset(value int) *Node {
 }
 
 func (dll *DLL) Remove() {
+	dll.Lock()
+	defer dll.Unlock()
+
 	if dll.last == nil {
 		return
 	}
@@ -45,6 +55,9 @@ func (dll *DLL) Remove() {
 }
 
 func (dll *DLL) Read(node *Node) {
+	dll.Lock()
+	defer dll.Unlock()
+
 	if node == dll.root {
 		return
 	}

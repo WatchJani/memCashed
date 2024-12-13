@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"root/client"
+	"root/hash_table"
 	"root/memory_allocator"
 	"root/server"
 	"time"
@@ -47,6 +48,7 @@ func main() {
 		Addr:    Port,
 		MaxConn: MaxConnection,
 		Slab:    memory_allocator.NewSlabManager(slabAllocator),
+		Engine:  hash_table.NewEngine(15),
 	}
 
 	go func() {

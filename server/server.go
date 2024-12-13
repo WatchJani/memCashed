@@ -95,11 +95,9 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			// slabManager.
 			s.Insert(key, field, ttl)
 		case 'D':
-			
+
 		case 'G':
 
-		default:
-			return
 		}
 
 		// fmt.Println("Header:", header)

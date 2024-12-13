@@ -70,9 +70,11 @@ func main() {
 			}
 		}()
 
+		// for {
 		if _, err := conn.Write(data); err != nil {
 			log.Println(err)
 		}
+		// }
 	}()
 
 	if err := s.Run(); err != nil {

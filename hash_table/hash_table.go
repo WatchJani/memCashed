@@ -59,7 +59,7 @@ func NewEngine(capacity uint32) *Engine {
 
 func (e *Engine) ReceiveTask(index int) {
 	for data := range e.sendCh[index] {
-		
+
 		e.shard[index][string(data.key)] = Key{}
 	}
 }

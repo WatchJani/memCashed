@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"root/client"
@@ -8,6 +9,7 @@ import (
 	"root/memory_allocator"
 	"root/server"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -16,7 +18,13 @@ const (
 )
 
 func main() {
-	newAllocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
+	data := make([]byte, 10)
+	data[0] = 'a'
+	ptr := unsafe.Pointer(&data[0])
+
+	fmt.Println(string(unsafe.Slice((*byte)(ptr), 1)))
+
+	newAllocator := memory_allocator.New(1024 * 1024)
 
 	slabCapacity := []int{
 		64,

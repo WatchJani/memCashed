@@ -3,6 +3,7 @@ package link_list
 import (
 	"fmt"
 	"sync"
+	"unsafe"
 )
 
 type DLL struct {
@@ -14,10 +15,24 @@ type DLL struct {
 type Node struct {
 	left  *Node
 	right *Node
-	value int
+	value Value
 }
 
-func (dll *DLL) Inset(value int) *Node {
+type Value struct {
+	pointer unsafe.Pointer //we need 2 thing memory page and location in memory, we can get that data from pointer
+	key     string         //link my hash table
+}
+
+// is impassible to make data race here?
+func (dll *DLL) GetLRUFreeSpace(lru *Node, blockSize int) []byte {
+	dll.Lock()
+	defer dll.Unlock()
+
+	ptr := lru.value.pointer
+	return unsafe.Slice((*byte)(ptr), blockSize)
+}
+
+func (dll *DLL) Inset(value Value) *Node {
 	dll.Lock()
 	defer dll.Unlock()
 
@@ -52,6 +67,10 @@ func (dll *DLL) Remove() {
 
 	dll.last = dll.last.left
 	dll.last.right = nil
+}
+
+func (dll *DLL) LastNode() *Node {
+	return dll.last
 }
 
 func (dll *DLL) Read(node *Node) {

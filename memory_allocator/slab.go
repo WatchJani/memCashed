@@ -11,6 +11,13 @@ type SlabManager struct {
 	lru   []link_list.DLL
 }
 
+func (s *SlabManager) FreeSpace(index, slabSize int) []byte {
+	lastNode := s.lru[index].LastNode()
+	s.lru[index].Read(lastNode) //set node to root
+
+	return s.lru[index].GetLRUFreeSpace(lastNode, slabSize)
+}
+
 func (s *SlabManager) GetSlabIndex(index int) *Slab {
 	return &s.slabs[index]
 }
@@ -26,7 +33,7 @@ func NewSlabManager(slabs []Slab) SlabManager {
 	}
 }
 
-func (s *SlabManager) GetIndex(dataSize int) int {
+func (s *SlabManager) GetIndex(dataSize int) (int, int) {
 	low, high := 0, len(s.slabs)-1
 	result := high
 
@@ -42,11 +49,11 @@ func (s *SlabManager) GetIndex(dataSize int) int {
 		}
 	}
 
-	return result
+	return result, slabs[result].slabSize
 }
 
-func (s *SlabManager) ChoseSlab(dataSize int) *Slab {
-	return &s.slabs[s.GetIndex(dataSize)]
+func (s *SlabManager) ChoseSlab(index int) *Slab {
+	return &s.slabs[index]
 }
 
 type Slab struct {
@@ -88,6 +95,7 @@ func (s *Slab) AllocateMemory() ([]byte, error) {
 		}
 
 		s.UpdatePage(block)
+		return s.currentPage[0:s.slabSize], nil //new memory block
 	}
 
 	return s.currentPage[start:end], nil

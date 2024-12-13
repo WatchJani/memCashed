@@ -64,14 +64,14 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 
 		operation, keyLength, ttl, bodyLength := Decode(header)
-		// fmt.Println("operation:", operation)
-		// fmt.Println("ttl", ttl)
 
-		slabManager := s.Slab.ChoseSlab(int(bodyLength + keyLength))
-		slabBlock, err := slabManager.AllocateMemory()
+		slabIndex, chunkSize := s.Slab.GetIndex(int(bodyLength + keyLength))
+		slabBlock, err := s.Slab.ChoseSlab(slabIndex).AllocateMemory()
 		if err != nil {
-			log.Fatal(err)
-			break
+			fmt.Println(err)
+			//no more space in memory //use LRU for free space
+			slabBlock = s.Slab.FreeSpace(slabIndex, chunkSize)
+			//add block from lru
 		}
 
 		n, err := conn.Read(slabBlock)
@@ -79,7 +79,7 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
 			}
-
+			fmt.Println("yes")
 			break
 		}
 
@@ -93,7 +93,7 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			field := slabBlock[keyLength:n]
 			// fmt.Println("field", field)
 			// slabManager.
-			s.Insert(key, field, ttl)
+			s.Insert(key, field, ttl) //lru list
 		case 'D':
 
 		case 'G':

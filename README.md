@@ -1,4 +1,4 @@
-# In-Memory Database with LRU, TTL, and Custom Memory Allocator
+# In-Memory Database with LRU, TTL, and Custom Memory Allocator 
 
 This is a high-performance in-memory database designed to efficiently store and manage data with built-in features such as **LRU (Least Recently Used)** caching, **TTL (Time-to-Live)** expiration, and a **custom memory allocator** that works as a **slab allocator**.
 

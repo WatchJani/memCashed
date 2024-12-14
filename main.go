@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"root/client"
@@ -9,7 +8,6 @@ import (
 	"root/memory_allocator"
 	"root/server"
 	"time"
-	"unsafe"
 )
 
 const (
@@ -18,11 +16,11 @@ const (
 )
 
 func main() {
-	data := make([]byte, 10)
-	data[0] = 'a'
-	ptr := unsafe.Pointer(&data[0])
+	// data := make([]byte, 10)
+	// data[0] = 'a'
+	// ptr := unsafe.Pointer(&data[0])
 
-	fmt.Println(string(unsafe.Slice((*byte)(ptr), 1)))
+	// fmt.Println(string(unsafe.Slice((*byte)(ptr), 1)))
 
 	newAllocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
 
@@ -77,6 +75,16 @@ func main() {
 				log.Println(err)
 			}
 		}()
+
+		buff := make([]byte, 4096)
+		go func(conn net.Conn) {
+			n, err := conn.Read(buff)
+			if err != nil {
+				log.Println(err)
+			}
+
+			log.Println(string(buff[:n]))
+		}(conn)
 
 		// for {
 		if _, err := conn.Write(data); err != nil {

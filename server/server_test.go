@@ -17,13 +17,14 @@ func Benchmark(b *testing.B) {
 
 	//Workers
 	for range numberOfConnection {
-		go func() {
-			conn, err := net.Dial("tcp", port)
-			if err != nil {
-				log.Fatal(err)
-				return
-			}
+		conn, err := net.Dial("tcp", port)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 
+		//write data
+		go func(conn net.Conn) {
 			for {
 				payload := <-SenderCh
 
@@ -31,7 +32,18 @@ func Benchmark(b *testing.B) {
 					log.Println(err)
 				}
 			}
-		}()
+		}(conn)
+
+		//get response from server
+		go func(conn net.Conn) {
+			buff := make([]byte, 4096)
+
+			for {
+				if _, err := conn.Read(buff); err != nil {
+					log.Println(err)
+				}
+			}
+		}(conn)
 	}
 
 	time.Sleep(100 * time.Millisecond)

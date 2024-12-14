@@ -24,7 +24,7 @@ func main() {
 
 	fmt.Println(string(unsafe.Slice((*byte)(ptr), 1)))
 
-	newAllocator := memory_allocator.New(1024 * 1024)
+	newAllocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
 
 	slabCapacity := []int{
 		64,

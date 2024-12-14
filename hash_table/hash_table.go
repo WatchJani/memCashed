@@ -131,6 +131,12 @@ type SysDelete struct {
 	key []byte
 }
 
+func NewSysDelete(key []byte) SysDelete {
+	return SysDelete{
+		key: key,
+	}
+}
+
 func TLLParser(ttl uint32) time.Time {
 	if ttl > 0 {
 		return time.Now().Add(time.Duration(ttl) * time.Second)

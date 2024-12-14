@@ -63,15 +63,23 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
+		//header decode
 		operation, keyLength, ttl, bodyLength := Decode(header)
 
+		//get slab container
 		slabIndex, chunkSize := s.Slab.GetIndex(int(bodyLength + keyLength))
 		slabBlock, err := s.Slab.ChoseSlab(slabIndex).AllocateMemory()
+
+		key := slabBlock[:keyLength]
+
 		if err != nil {
 			fmt.Println(err)
 			//no more space in memory //use LRU for free space
-			slabBlock = s.Slab.FreeSpace(slabIndex, chunkSize)
 			//add block from lru
+			slabBlock = s.Slab.FreeSpace(slabIndex, chunkSize)
+
+			//delete key in hash map
+			s.Distribute(key, hash_table.NewSysDelete(key))
 		}
 
 		n, err := conn.Read(slabBlock)
@@ -83,15 +91,15 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		key, lru := slabBlock[:keyLength], s.Slab.GetLRUIndex(slabIndex)
+		lru := s.Slab.GetLRUIndex(slabIndex)
 
 		switch operation {
-		case 'S':
+		case 'S': //set operation
 			field := slabBlock[keyLength:n]
 			s.Distribute(key, hash_table.NewSetReq(key, conn, lru, field, ttl))
-		case 'D':
+		case 'D': //delete operation
 			s.Distribute(key, hash_table.NewDeleteReq(operation, key, conn, lru))
-		case 'G':
+		case 'G': //get operation
 			s.Distribute(key, hash_table.NewGetReq(operation, key, conn, lru))
 		}
 	}

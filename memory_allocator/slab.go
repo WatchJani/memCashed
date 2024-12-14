@@ -9,11 +9,18 @@ import (
 type SlabManager struct {
 	slabs []Slab
 	lru   []link_list.DLL
+	sync.RWMutex
 }
 
 func (s *SlabManager) FreeSpace(index, slabSize int) []byte {
+	s.Lock()
+	defer s.Unlock()
+
 	lastNode := s.lru[index].LastNode()
-	s.lru[index].Read(lastNode) //set node to root
+	s.lru[index].Delete(lastNode) //Delete last node in
+	// s.lru[index].Read(lastNode) //set node to root
+
+	
 
 	return s.lru[index].GetLRUFreeSpace(lastNode, slabSize)
 }

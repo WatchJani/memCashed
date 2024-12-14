@@ -51,6 +51,30 @@ func (dll *DLL) Inset(value Value) *Node {
 	return newNode
 }
 
+func (dll *DLL) Delete(node *Node) {
+	if node == nil {
+		return
+	}
+
+	dll.Lock()
+	defer dll.Unlock()
+
+	if node.left != nil {
+		node.left.right = node.right
+	} else {
+		dll.root = node.right
+	}
+
+	if node.right != nil {
+		node.right.left = node.left
+	} else {
+		dll.last = node.left
+	}
+
+	node.left = nil
+	node.right = nil
+}
+
 func (dll *DLL) Remove() {
 	dll.Lock()
 	defer dll.Unlock()

@@ -23,6 +23,13 @@ type Value struct {
 	key     string         //link my hash table
 }
 
+func NewValue(pointer unsafe.Pointer, key string) Value {
+	return Value{
+		pointer: pointer,
+		key:     key,
+	}
+}
+
 // is impassible to make data race here?
 func (dll *DLL) GetLRUFreeSpace(lru *Node, blockSize int) []byte {
 	dll.Lock()

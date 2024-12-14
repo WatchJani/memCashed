@@ -83,24 +83,16 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
+		key, lru := slabBlock[:keyLength], s.Slab.GetLRUIndex(slabIndex)
+
 		switch operation {
 		case 'S':
-			//pointer on key
-			key := slabBlock[:keyLength]
-			// fmt.Println("key", key)
-
-			//pointer on field //real data
 			field := slabBlock[keyLength:n]
-			// fmt.Println("field", field)
-			// slabManager.
-			s.Insert(key, field, ttl) //lru list
+			s.Distribute(key, hash_table.NewSetReq(key, conn, lru, field, ttl))
 		case 'D':
-
+			s.Distribute(key, hash_table.NewDeleteReq(operation, key, conn, lru))
 		case 'G':
-
+			s.Distribute(key, hash_table.NewGetReq(operation, key, conn, lru))
 		}
-
-		// fmt.Println("Header:", header)
-		// fmt.Println("Body:", slabBlock[:n])
 	}
 }

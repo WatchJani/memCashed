@@ -7,6 +7,7 @@ import (
 	"net"
 	"root/link_list"
 	"time"
+	"unsafe"
 )
 
 var (
@@ -31,9 +32,9 @@ type Key struct {
 // 	ttl   uint32
 // }
 
-func (e *Engine) Insert(setReq SetReq) {
+func (e *Engine) Distribute(key []byte, setReq interface{}) {
 	f := fnv.New32a()
-	f.Write(setReq.key)
+	f.Write(key)
 
 	shardIndex := int(f.Sum32() % uint32(e.numberOfShard))
 
@@ -72,6 +73,52 @@ type SetReq struct {
 	ttl   uint32
 }
 
+func NewSetReq(
+	key []byte,
+	conn net.Conn,
+	lru *link_list.DLL,
+	field []byte,
+	ttl uint32,
+) SetReq {
+	return SetReq{
+		BaseReq: BaseReq{
+			key:  key,
+			conn: conn,
+			lru:  lru,
+		},
+		field: field,
+		ttl:   ttl,
+	}
+}
+
+func NewDeleteReq(
+	operation byte,
+	key []byte,
+	conn net.Conn,
+	lru *link_list.DLL,
+) BaseReq {
+	return BaseReq{
+		operation: operation,
+		key:       key,
+		conn:      conn,
+		lru:       lru,
+	}
+}
+
+func NewGetReq(
+	operation byte,
+	key []byte,
+	conn net.Conn,
+	lru *link_list.DLL,
+) BaseReq {
+	return BaseReq{
+		operation: operation,
+		key:       key,
+		conn:      conn,
+		lru:       lru,
+	}
+}
+
 // For delete and get
 type BaseReq struct {
 	operation byte
@@ -98,9 +145,18 @@ func (e *Engine) ReceiveTask(index int) {
 		case SetReq:
 			obj := v
 
-			e.shard[index][string(obj.key)] = Key{
+			key := string(obj.key)
+			//insert in hash map
+			e.shard[index][key] = Key{
 				field: obj.field,
 				ttl:   TLLParser(obj.ttl),
+			}
+
+			//insert in lru
+			obj.lru.Inset(link_list.NewValue(unsafe.Pointer(&obj.field[0]), key))
+
+			if _, err := obj.conn.Write([]byte("object inserted")); err != nil {
+				log.Println(err)
 			}
 		case BaseReq:
 			obj := v

@@ -20,8 +20,6 @@ func (s *SlabManager) FreeSpace(index, slabSize int) []byte {
 	s.lru[index].Delete(lastNode) //Delete last node in
 	// s.lru[index].Read(lastNode) //set node to root
 
-	
-
 	return s.lru[index].GetLRUFreeSpace(lastNode, slabSize)
 }
 
@@ -70,6 +68,10 @@ type Slab struct {
 	pagePointer int
 	sync.RWMutex
 	*Allocator
+}
+
+func (s *Slab) IsSlabActive() bool {
+	return s.currentPage != nil
 }
 
 func (s *Slab) GetCurrentPage() []byte {

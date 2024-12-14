@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// no memory space 1420ns
+// free memory 1100ns
 func Benchmark(b *testing.B) {
 	b.StopTimer()
 

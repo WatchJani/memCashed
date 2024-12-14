@@ -7,6 +7,7 @@ import (
 	"net"
 	"root/hash_table"
 	"root/memory_allocator"
+	"sync"
 )
 
 const HeaderSize = 10
@@ -17,6 +18,7 @@ type Server struct {
 	ActiveConn int
 	Slab       memory_allocator.SlabManager
 	*hash_table.Engine
+	sync.RWMutex
 }
 
 func (s *Server) Run() error {
@@ -38,7 +40,10 @@ func (s *Server) Run() error {
 			return err
 		}
 
+		s.Lock()
 		s.ActiveConn++
+		s.Unlock()
+
 		go s.ReaderLoop(conn)
 	}
 }
@@ -49,9 +54,14 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		if err := conn.Close(); err != nil {
 			log.Println(err)
 		}
+
+		s.Lock()
+		s.ActiveConn--
+		s.Unlock()
 	}()
 
 	header := make([]byte, HeaderSize)
+	noMemoryBlock := make([]byte, 1024*1024)
 
 	for {
 		_, err := conn.Read(header)
@@ -70,13 +80,28 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		slabIndex, chunkSize := s.Slab.GetIndex(int(bodyLength + keyLength))
 		slabBlock, err := s.Slab.ChoseSlab(slabIndex).AllocateMemory()
 
-		key := slabBlock[:keyLength]
 		if err != nil {
 			fmt.Println(err)
+
+			if !s.Slab.GetSlabIndex(slabIndex).IsSlabActive() {
+				conn.Write([]byte(err.Error()))
+
+				//and if I can't allocate memory to my server I still have to read the req to the end
+				_, err := conn.Read(noMemoryBlock)
+				if err != nil {
+					if err != io.EOF {
+						log.Println("Error reading from connection:", err)
+					}
+					break
+				}
+
+				continue
+			}
+
 			//no more space in memory //use LRU for free space
 			//add block from lru
 			slabBlock = s.Slab.FreeSpace(slabIndex, chunkSize)
-
+			key := slabBlock[:keyLength]
 			//delete key in hash map
 			s.Distribute(key, hash_table.NewSysDelete(key))
 		}
@@ -86,19 +111,17 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
 			}
-			fmt.Println("yes")
 			break
 		}
 
-		lru := s.Slab.GetLRUIndex(slabIndex)
+		lru, key := s.Slab.GetLRUIndex(slabIndex), slabBlock[:keyLength]
 
 		switch operation {
 		case 'S': //set operation
 			field := slabBlock[keyLength:n]
-
 			s.Distribute(key, hash_table.NewSetReq(key, conn, lru, field, ttl))
 		case 'D': //delete operation
-			s.Distribute(key, hash_table.NewDeleteReq(operation, key, conn, lru))
+			s.Distribute(key, hash_table.NewDeleteReq(operation, key, conn, lru)) //add stack for delete
 		case 'G': //get operation
 			s.Distribute(key, hash_table.NewGetReq(operation, key, conn, lru))
 		}

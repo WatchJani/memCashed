@@ -16,12 +16,6 @@ const (
 )
 
 func main() {
-	// data := make([]byte, 10)
-	// data[0] = 'a'
-	// ptr := unsafe.Pointer(&data[0])
-
-	// fmt.Println(string(unsafe.Slice((*byte)(ptr), 1)))
-
 	newAllocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
 
 	slabCapacity := []int{
@@ -46,9 +40,6 @@ func main() {
 	for i := range slabAllocator {
 		slabAllocator[i] = memory_allocator.NewSlab(slabCapacity[i], newAllocator)
 	}
-
-	memory, _ := slabAllocator[0].AllocateMemory()
-	memory[0] = 'a'
 
 	s := server.Server{
 		Addr:    Port,
@@ -90,6 +81,7 @@ func main() {
 		if _, err := conn.Write(data); err != nil {
 			log.Println(err)
 		}
+		time.Sleep(100 * time.Millisecond)
 		// }
 	}()
 

@@ -193,6 +193,7 @@ func (e *Engine) ReceiveTask(index int) {
 			//for 'D' operation
 			delete(e.shard[index], string(v.key))
 			obj.lru.Delete(valueObject.pointer) //delete from lru
+			// obj.lru. //add to stack
 			if _, err := obj.conn.Write([]byte("Deleted")); err != nil {
 				log.Println(err)
 			}

@@ -61,7 +61,7 @@ func BenchmarkSlabAllocator(b *testing.B) {
 	b.StopTimer()
 
 	allocator := New(5 * 1024 * 1024) //5 MiB
-	s := NewSlab(64, allocator)
+	s := NewSlab(64, 0, allocator)
 
 	b.StartTimer()
 

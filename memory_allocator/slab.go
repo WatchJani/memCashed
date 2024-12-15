@@ -78,7 +78,8 @@ func (s *Slab) GetCurrentPage() []byte {
 	return s.currentPage
 }
 
-func NewSlab(slabSize int, allocator *Allocator) Slab {
+// maxMemoryAllocate not define yet
+func NewSlab(slabSize, maxMemoryAllocate int, allocator *Allocator) Slab {
 	return Slab{
 		slabSize:  slabSize,
 		freeList:  stack.New[[]byte](10),

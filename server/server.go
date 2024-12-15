@@ -6,11 +6,14 @@ import (
 	"log"
 	"net"
 	"root/hash_table"
+	"root/internal/types"
 	"root/memory_allocator"
 	"sync"
 )
 
-const HeaderSize = 10
+const (
+	HeaderSize = 10
+)
 
 type Server struct {
 	Addr       string
@@ -19,6 +22,20 @@ type Server struct {
 	Slab       memory_allocator.SlabManager
 	*hash_table.Engine
 	sync.RWMutex
+}
+
+func NewServer() *Server {
+	config := types.LoadConfiguration()
+	newAllocator := config.MemoryAllocator()
+
+	return &Server{
+		Addr:    config.Port(),
+		MaxConn: config.MaxConnection(),
+		Slab: memory_allocator.NewSlabManager(
+			config.Slabs(newAllocator),
+		),
+		Engine: config.Workers(),
+	}
 }
 
 func (s *Server) Run() error {

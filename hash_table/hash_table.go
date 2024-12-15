@@ -26,12 +26,6 @@ type Key struct {
 	pointer *link_list.Node
 }
 
-// type Payload struct {
-// 	key   []byte
-// 	field []byte
-// 	ttl   uint32
-// }
-
 func (e *Engine) Distribute(key []byte, setReq interface{}) {
 	f := fnv.New32a()
 	f.Write(key)
@@ -39,11 +33,6 @@ func (e *Engine) Distribute(key []byte, setReq interface{}) {
 	shardIndex := int(f.Sum32() % uint32(e.numberOfShard))
 
 	e.sendCh[shardIndex] <- setReq
-	// e.sendCh[shardIndex] <- Payload{
-	// 	key:   key,
-	// 	field: field,
-	// 	ttl:   ttl,
-	// }
 }
 
 func NewEngine(capacity uint32) *Engine {

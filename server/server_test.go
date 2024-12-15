@@ -13,7 +13,7 @@ import (
 func Benchmark(b *testing.B) {
 	b.StopTimer()
 
-	numberOfConnection := 10
+	numberOfConnection := 12
 	SenderCh := make(chan []byte)
 	port := ":5000"
 

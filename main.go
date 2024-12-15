@@ -3,11 +3,14 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 	"root/client"
 	"root/hash_table"
 	"root/memory_allocator"
 	"root/server"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -15,7 +18,99 @@ const (
 	Port          string = ":5000"
 )
 
+type ServerConfig struct {
+	Port          int `yaml:"port"`                  //By default 5001
+	MaxConnection int `yaml:"max_number_connection"` //By default 100
+}
+
+type Config struct {
+	Server ServerConfig `yaml:"server"`
+
+	MemoryAllocate int  `yaml:"memory_for_allocate"` //By Default 5GiB
+	IsDefaultSlab  bool `yaml:"default_slab"`        //true
+
+	NumberOfWorker int `yaml:"number_of_worker"`
+
+	DefaultSlab []CustomSlab `yaml:"custom_slabs"`
+}
+
+type CustomSlab struct {
+	Capacity          int `yaml:"chunk_capacity"`
+	MaxMemoryAllocate int `yaml:"max_allocate_memory"`
+}
+
 func main() {
+	conf := Config{
+		Server: ServerConfig{
+			Port:          5000,
+			MaxConnection: 100,
+		},
+		MemoryAllocate: 5 * 1024 * 1024 * 1024,
+		IsDefaultSlab:  true,
+
+		NumberOfWorker: 15,
+
+		DefaultSlab: []CustomSlab{
+			{
+				Capacity:          64,
+				MaxMemoryAllocate: 0, //by default
+			}, {
+				Capacity: 128,
+			},
+			{
+				Capacity: 256,
+			},
+			{
+				Capacity: 512,
+			},
+			{
+				Capacity: 1024,
+			},
+			{
+				Capacity: 2048,
+			},
+			{
+				Capacity: 4096,
+			},
+			{
+				Capacity: 4096,
+			},
+			{
+				Capacity: 8192,
+			},
+			{
+				Capacity: 16384,
+			},
+			{
+				Capacity: 32768,
+			},
+			{
+				Capacity: 65536,
+			},
+			{
+				Capacity: 131072,
+			},
+			{
+				Capacity: 262144,
+			},
+			{
+				Capacity: 524288,
+			},
+			{
+				Capacity: 1048576,
+			},
+		},
+	}
+
+	output, err := yaml.Marshal(&conf)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if err := os.WriteFile("./config.yaml", output, 0777); err != nil {
+		log.Println(err)
+	}
+
 	newAllocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
 
 	slabCapacity := []int{
@@ -69,12 +164,15 @@ func main() {
 
 		buff := make([]byte, 4096)
 		go func(conn net.Conn) {
-			n, err := conn.Read(buff)
-			if err != nil {
-				log.Println(err)
-			}
+			for {
+				n, err := conn.Read(buff)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 
-			log.Println(string(buff[:n]))
+				log.Println(string(buff[:n]))
+			}
 		}(conn)
 
 		// for {

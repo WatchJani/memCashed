@@ -1,0 +1,41 @@
+server:
+  port: 5000
+  max_number_connection: 100
+
+memory_for_allocate: 5368709120
+default_slab: true
+number_of_worker: 15
+
+custom_slabs:
+  - chunk_capacity: 64
+    max_allocate_memory: 0
+  - chunk_capacity: 128
+    max_allocate_memory: 0
+  - chunk_capacity: 256
+    max_allocate_memory: 0
+  - chunk_capacity: 512
+    max_allocate_memory: 0
+  - chunk_capacity: 1024
+    max_allocate_memory: 0
+  - chunk_capacity: 2048
+    max_allocate_memory: 0
+  - chunk_capacity: 4096
+    max_allocate_memory: 0
+  - chunk_capacity: 4096
+    max_allocate_memory: 0
+  - chunk_capacity: 8192
+    max_allocate_memory: 0
+  - chunk_capacity: 16384
+    max_allocate_memory: 0
+  - chunk_capacity: 32768
+    max_allocate_memory: 0
+  - chunk_capacity: 65536
+    max_allocate_memory: 0
+  - chunk_capacity: 131072
+    max_allocate_memory: 0
+  - chunk_capacity: 262144
+    max_allocate_memory: 0
+  - chunk_capacity: 524288
+    max_allocate_memory: 0
+  - chunk_capacity: 1048576
+    max_allocate_memory: 0

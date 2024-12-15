@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"root/client"
 	"root/hash_table"
+	"root/internal/cli"
+	"root/internal/types"
 	"root/memory_allocator"
 	"root/server"
 	"time"
@@ -13,103 +16,28 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	MaxConnection int    = 100
-	Port          string = ":5000"
-)
-
-type ServerConfig struct {
-	Port          int `yaml:"port"`                  //By default 5001
-	MaxConnection int `yaml:"max_number_connection"` //By default 100
-}
-
-type Config struct {
-	Server ServerConfig `yaml:"server"`
-
-	MemoryAllocate int `yaml:"memory_for_allocate"` //By Default 5GiB
-
-	NumberOfWorker int `yaml:"number_of_worker"`
-
-	DefaultSlab []CustomSlab `yaml:"custom_slabs"`
-}
-
-type CustomSlab struct {
-	Capacity          int `yaml:"chunk_capacity"`
-	MaxMemoryAllocate int `yaml:"max_allocate_memory"`
-}
+// const (
+// 	MaxConnection int    = 100
+// 	Port          string = ":5000"
+// )
 
 func main() {
-	conf := Config{
-		Server: ServerConfig{
-			Port:          5000,
-			MaxConnection: 100,
-		},
-		MemoryAllocate: 5 * 1024 * 1024 * 1024,
+	path := cli.ParseFlag()
 
-		NumberOfWorker: 15,
-
-		DefaultSlab: []CustomSlab{
-			{
-				Capacity:          64,
-				MaxMemoryAllocate: 0, //by default
-			}, {
-				Capacity: 128,
-			},
-			{
-				Capacity: 256,
-			},
-			{
-				Capacity: 512,
-			},
-			{
-				Capacity: 1024,
-			},
-			{
-				Capacity: 2048,
-			},
-			{
-				Capacity: 4096,
-			},
-			{
-				Capacity: 4096,
-			},
-			{
-				Capacity: 8192,
-			},
-			{
-				Capacity: 16384,
-			},
-			{
-				Capacity: 32768,
-			},
-			{
-				Capacity: 65536,
-			},
-			{
-				Capacity: 131072,
-			},
-			{
-				Capacity: 262144,
-			},
-			{
-				Capacity: 524288,
-			},
-			{
-				Capacity: 1048576,
-			},
-		},
-	}
-
-	output, err := yaml.Marshal(&conf)
+	configData, err := os.ReadFile(path)
 	if err != nil {
 		log.Println(err)
 	}
 
-	if err := os.WriteFile("./config.yaml", output, 0777); err != nil {
-		log.Println(err)
+	config := types.NewConfig()
+
+	if err := yaml.Unmarshal(configData, config); err != nil {
+		log.Fatal(err)
 	}
 
-	newAllocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
+	fmt.Println(config)
+
+	newAllocator := memory_allocator.New(config.MemoryAllocate * 1024)
 
 	slabCapacity := []int{
 		64,
@@ -135,8 +63,8 @@ func main() {
 	}
 
 	s := server.Server{
-		Addr:    Port,
-		MaxConn: MaxConnection,
+		Addr:    fmt.Sprintf(":%d", config.Server.Port),
+		MaxConn: config.Server.MaxConnection,
 		Slab:    memory_allocator.NewSlabManager(slabAllocator),
 		Engine:  hash_table.NewEngine(15),
 	}
@@ -148,7 +76,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		conn, err := net.Dial("tcp", Port)
+		conn, err := net.Dial("tcp", ":5001")
 		if err != nil {
 			log.Println(err)
 		}

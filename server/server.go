@@ -15,6 +15,10 @@ const (
 	HeaderSize = 10
 )
 
+// The `Server` structure defines the core server
+// parameters, including the address, maximum number
+// of connections, active connections, memory
+// allocator, and hash table engine.
 type Server struct {
 	Addr       string
 	MaxConn    int
@@ -24,6 +28,8 @@ type Server struct {
 	sync.RWMutex
 }
 
+// NewServer creating new server instance with
+// load configuration
 func NewServer() *Server {
 	config := types.LoadConfiguration()
 	newAllocator := config.MemoryAllocator()
@@ -38,6 +44,10 @@ func NewServer() *Server {
 	}
 }
 
+// The `Run` function starts the server and
+// listens for incoming TCP connections.
+// The main server loop continues to run until
+// an error occurs or the connection is closed.
 func (s *Server) Run() error {
 	ls, err := net.Listen("tcp", s.Addr)
 	if err != nil {
@@ -52,35 +62,61 @@ func (s *Server) Run() error {
 	}()
 
 	for {
+		// Accepting an incoming TCP connection. If an error
+		// occurs while accepting the connection, the
+		// function returns an error.
 		conn, err := ls.Accept()
 		if err != nil {
 			return err
 		}
 
-		s.Lock()
 		s.ActiveConn++
-		s.Unlock()
 
+		// Limit on the number of active connections.
+		// If the limit is exceeded, the new connection
+		// is immediately closed.
+		if s.ActiveConn > s.MaxConn {
+			if err := conn.Close(); err != nil {
+				log.Println(err)
+			}
+		}
+
+		// Each new connection is handled in a
+		// separate goroutine, allowing multiple
+		// connections to be processed simultaneously.
 		go s.ReaderLoop(conn)
 	}
 }
 
+// ReaderLoop is the function that starts a loop
+// for reading data from the connection.
 func (s *Server) ReaderLoop(conn net.Conn) {
+
+	// Defers (delays) the function which is called at the
+	// end - closing the connection and releasing resources.
 	defer func() {
 		fmt.Println("connection close...")
+
+		// Attempts to close the connection,
+		// and if an error occurs, it logs it.
 		if err := conn.Close(); err != nil {
 			log.Println(err)
 		}
 
 		s.Lock()
-		s.ActiveConn--
+		s.ActiveConn-- // Decreases the number of active connections.
 		s.Unlock()
 	}()
 
+	// Creates a byte slice for the header with size HeaderSize.
 	header := make([]byte, HeaderSize)
+
+	// Creates a byte slice for allocating memory (1 MB) in case of error.
 	noMemoryBlock := make([]byte, 1024*1024)
 
+	// Starts an infinite loop for reading data from permanent the connection.
 	for {
+		// Reads data from the connection into the header.
 		_, err := conn.Read(header)
 		if err != nil {
 			if err != io.EOF {
@@ -90,16 +126,23 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
-		//header decode
+		// Decodes the header and gets operation, key length,
+		//  TTL (time-to-live), and body length.
 		operation, keyLength, ttl, bodyLength := Decode(header)
 
-		//get slab container
+		// Gets the slab index and chunk size.
 		slabIndex, chunkSize := s.Slab.GetIndex(int(bodyLength + keyLength))
+
+		// Attempts to allocate memory in the appropriate slab.
 		slabBlock, err := s.Slab.ChoseSlab(slabIndex).AllocateMemory()
 
 		if err != nil {
+			// If an error occurs during memory allocation,
+			// prints the error.
 			fmt.Println(err)
 
+			// If the slab is not active, sends the error to the
+			// client and tries to read the rest of the request.
 			if !s.Slab.GetSlabIndex(slabIndex).IsSlabActive() {
 				conn.Write([]byte(err.Error()))
 
@@ -115,14 +158,16 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 				continue
 			}
 
-			//no more space in memory //use LRU for free space
-			//add block from lru
+			// If there is no more space in memory, uses LRU
+			// (Least Recently Used) policy to free up space.
 			slabBlock = s.Slab.FreeSpace(slabIndex, chunkSize)
 			key := slabBlock[:keyLength]
-			//delete key in hash map
+
+			// Deletes the key from the hash table.
 			s.Distribute(key, hash_table.NewSysDelete(key))
 		}
 
+		// Reads data directly into the slabBlock.
 		n, err := conn.Read(slabBlock)
 		if err != nil {
 			if err != io.EOF {
@@ -131,8 +176,10 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 			break
 		}
 
+		// Gets the LRU working struct and key from the slabBlock.
 		lru, key := s.Slab.GetLRUIndex(slabIndex), slabBlock[:keyLength]
 
+		// Based on the operation (S, D, G), distributes the corresponding request.
 		switch operation {
 		case 'S': //set operation
 			field := slabBlock[keyLength:n]

@@ -13,6 +13,7 @@ import (
 
 const (
 	HeaderSize = 10
+	MiB        = 1024 * 1024
 )
 
 // The `Server` structure defines the core server
@@ -88,43 +89,61 @@ func (s *Server) Run() error {
 	}
 }
 
+// Decreases the number of active connections.
+func (s *Server) decrease() {
+	s.Lock()
+	defer s.Unlock()
+
+	s.ActiveConn--
+}
+
+// handleConnectionClose - Clean up connection and active connection count.
+func (s *Server) handleConnectionClose(conn net.Conn) {
+	fmt.Println("connection close...")
+
+	// Attempts to close the connection,
+	// and if an error occurs, it logs it.
+	if err := conn.Close(); err != nil {
+		log.Println(err)
+	}
+
+	s.decrease()
+}
+
+func (s *Server) readFromConnection(conn net.Conn, header []byte) (int, error) {
+	n, err := conn.Read(header)
+	if err != nil {
+		if err != io.EOF {
+			log.Println("Error reading from connection:", err)
+		}
+		return -1, err
+	}
+
+	return n, nil
+}
+
 // ReaderLoop is the function that starts a loop
 // for reading data from the connection.
 func (s *Server) ReaderLoop(conn net.Conn) {
 
 	// Defers (delays) the function which is called at the
 	// end - closing the connection and releasing resources.
-	defer func() {
-		fmt.Println("connection close...")
-
-		// Attempts to close the connection,
-		// and if an error occurs, it logs it.
-		if err := conn.Close(); err != nil {
-			log.Println(err)
-		}
-
-		s.Lock()
-		s.ActiveConn-- // Decreases the number of active connections.
-		s.Unlock()
-	}()
+	defer s.handleConnectionClose(conn)
 
 	// Creates a byte slice for the header with size HeaderSize.
 	header := make([]byte, HeaderSize)
 
 	// Creates a byte slice for allocating memory (1 MB) in case of error.
-	noMemoryBlock := make([]byte, 1024*1024)
+	noMemoryBlock := make([]byte, MiB)
 
 	// Starts an infinite loop for reading data from permanent the connection.
 	for {
 		// Reads data from the connection into the header.
-		_, err := conn.Read(header)
-		if err != nil {
-			if err != io.EOF {
-				log.Println("Error reading from connection:", err)
-			}
-
+		if _, err := s.readFromConnection(conn, header); err != nil {
 			break
 		}
+
+		fmt.Println(string(header))
 
 		// Decodes the header and gets operation, key length,
 		//  TTL (time-to-live), and body length.
@@ -135,7 +154,6 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 
 		// Attempts to allocate memory in the appropriate slab.
 		slabBlock, err := s.Slab.ChoseSlab(slabIndex).AllocateMemory()
-
 		if err != nil {
 			// If an error occurs during memory allocation,
 			// prints the error.
@@ -147,11 +165,7 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 				conn.Write([]byte(err.Error()))
 
 				//and if I can't allocate memory to my server I still have to read the req to the end
-				_, err := conn.Read(noMemoryBlock)
-				if err != nil {
-					if err != io.EOF {
-						log.Println("Error reading from connection:", err)
-					}
+				if _, err := s.readFromConnection(conn, noMemoryBlock); err != nil {
 					break
 				}
 
@@ -168,26 +182,33 @@ func (s *Server) ReaderLoop(conn net.Conn) {
 		}
 
 		// Reads data directly into the slabBlock.
-		n, err := conn.Read(slabBlock)
+		n, err := s.readFromConnection(conn, slabBlock)
 		if err != nil {
-			if err != io.EOF {
-				log.Println("Error reading from connection:", err)
-			}
 			break
 		}
 
-		// Gets the LRU working struct and key from the slabBlock.
-		lru, key := s.Slab.GetLRUIndex(slabIndex), slabBlock[:keyLength]
-
-		// Based on the operation (S, D, G), distributes the corresponding request.
-		switch operation {
-		case 'S': //set operation
-			field := slabBlock[keyLength:n]
-			s.Distribute(key, hash_table.NewSetReq(key, conn, lru, field, ttl))
-		case 'D': //delete operation
-			s.Distribute(key, hash_table.NewDeleteReq(operation, key, conn, lru)) //add stack for delete
-		case 'G': //get operation
-			s.Distribute(key, hash_table.NewGetReq(operation, key, conn, lru))
+		if err := s.processOperation(operation, slabBlock[:n], conn, int(keyLength), slabIndex, ttl); err != nil {
+			log.Println("Error processing operation:", err)
 		}
 	}
+}
+
+func (s *Server) processOperation(operation byte, slabBlock []byte, conn net.Conn, keyLength, slabIndex int, ttl uint32) error {
+	// Gets the LRU working struct and key from the slabBlock.
+	lru, key := s.Slab.GetLRUIndex(slabIndex), slabBlock[:keyLength]
+
+	// Based on the operation (S, D, G), distributes the corresponding request.
+	switch operation {
+	case 'S': // Set operation
+		field := slabBlock[keyLength:]
+		s.Distribute(key, hash_table.NewSetReq(key, conn, lru, field, ttl))
+	case 'D': // Delete operation
+		s.Distribute(key, hash_table.NewDeleteReq(operation, key, conn, lru))
+	case 'G': // Get operation
+		s.Distribute(key, hash_table.NewGetReq(operation, key, conn, lru))
+	default:
+		return fmt.Errorf("unknown operation: %c", operation)
+	}
+
+	return nil
 }

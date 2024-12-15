@@ -26,8 +26,7 @@ type ServerConfig struct {
 type Config struct {
 	Server ServerConfig `yaml:"server"`
 
-	MemoryAllocate int  `yaml:"memory_for_allocate"` //By Default 5GiB
-	IsDefaultSlab  bool `yaml:"default_slab"`        //true
+	MemoryAllocate int `yaml:"memory_for_allocate"` //By Default 5GiB
 
 	NumberOfWorker int `yaml:"number_of_worker"`
 
@@ -46,7 +45,6 @@ func main() {
 			MaxConnection: 100,
 		},
 		MemoryAllocate: 5 * 1024 * 1024 * 1024,
-		IsDefaultSlab:  true,
 
 		NumberOfWorker: 15,
 

@@ -1,41 +1,30 @@
 server:
+  #the port on which our server works
   port: 5000
+
+  #the maximum number of connections
+  # allowed at the same time
   max_number_connection: 100
 
+#memory_for_allocate allows us to
+# allocate memory at the start of
+# our program's launch, in order
+# to have full control over memory
+# (5GiB by default)
 memory_for_allocate: 5368709120
-default_slab: true
+
+#number_of_worker defines the number
+# of parallel processes within the
+# system (the default number follows
+# the number of slabs)
 number_of_worker: 15
 
+# enables us to arbitrarily define
+# our own number of slabs in the
+# memory and the length of the bar
+# itself
 custom_slabs:
-  - chunk_capacity: 64
-    max_allocate_memory: 0
-  - chunk_capacity: 128
-    max_allocate_memory: 0
-  - chunk_capacity: 256
-    max_allocate_memory: 0
-  - chunk_capacity: 512
-    max_allocate_memory: 0
-  - chunk_capacity: 1024
-    max_allocate_memory: 0
-  - chunk_capacity: 2048
-    max_allocate_memory: 0
-  - chunk_capacity: 4096
-    max_allocate_memory: 0
-  - chunk_capacity: 4096
-    max_allocate_memory: 0
-  - chunk_capacity: 8192
-    max_allocate_memory: 0
-  - chunk_capacity: 16384
-    max_allocate_memory: 0
-  - chunk_capacity: 32768
-    max_allocate_memory: 0
-  - chunk_capacity: 65536
-    max_allocate_memory: 0
-  - chunk_capacity: 131072
-    max_allocate_memory: 0
-  - chunk_capacity: 262144
-    max_allocate_memory: 0
-  - chunk_capacity: 524288
-    max_allocate_memory: 0
-  - chunk_capacity: 1048576
-    max_allocate_memory: 0
+  # - chunk_capacity: 64
+  #   max_allocate_memory: 0
+  # - chunk_capacity: 128
+  #   max_allocate_memory: 0

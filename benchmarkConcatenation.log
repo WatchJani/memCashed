@@ -1,0 +1,7 @@
+goos: linux
+goarch: amd64
+pkg: root
+cpu: AMD Ryzen 5 3500X 6-Core Processor             
+Benchmark-6   	  918636	      1296 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	root	2.697s

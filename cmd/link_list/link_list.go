@@ -18,6 +18,10 @@ type Node struct {
 	value Value
 }
 
+func (n *Node) GetKey() string {
+	return n.value.key
+}
+
 type Value struct {
 	pointer unsafe.Pointer //we need 2 thing memory page and location in memory, we can get that data from pointer
 	key     string         //link my hash table

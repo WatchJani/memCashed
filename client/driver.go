@@ -1,108 +1,108 @@
 package client
 
 import (
-	"bytes"
-	"encoding/binary"
+	"crypto/rand"
+	"fmt"
+	"log"
+	"net"
 )
 
-var EmptyByte []byte = []byte{}
-
-// Operation - 1byte [x]
-// Key length - 1byte [x]
-// TTL - 4byte [x]
-// body length - 4byte
-// End of req - \r\n 2byte
-func Set(key, value []byte, ttl int) ([]byte, error) {
-	return Encode('S', key, value, ttl)
+type Driver struct {
+	Addr               string
+	NumberOfConnection int
+	AsynchronousMode   bool
+	PayloadCh          chan Communicator
 }
 
-func Get(key []byte) ([]byte, error) {
-	return Encode('G', key, EmptyByte, 0)
+type Communicator struct {
+	payload  []byte
+	response chan []byte
+	reqID    string
 }
 
-func Delete(key []byte) ([]byte, error) {
-	return Encode('D', key, EmptyByte, 0)
+func NewCommunicator(payload []byte, response chan []byte, reqID string) Communicator {
+	return Communicator{
+		payload:  payload,
+		response: response,
+		reqID:    reqID,
+	}
 }
 
-// var bodyLength uint32 = 4
+func New(addr string, numberConnection int) *Driver {
+	return &Driver{
+		Addr:               addr,
+		NumberOfConnection: numberConnection,
+		AsynchronousMode:   true,
+		PayloadCh:          make(chan Communicator),
+	}
+}
 
-// 	bloc := []byte{
-// 		byte(bodyLength & 0xFF),
-// 		byte((bodyLength >> 8) & 0xFF),
-// 		byte((bodyLength >> 16) & 0xFF),
-// 		byte((bodyLength >> 24) & 0xFF),
-// 	}
+func (d *Driver) Init() error {
+	communicator := d.PayloadCh
+	for range d.NumberOfConnection {
+		singleConnection, err := NewSingleConnection(communicator, d.Addr)
+		if err != nil {
+			return err
+		}
 
-func Encode(operation byte, key, value []byte, ttl int) ([]byte, error) {
-	var (
-		buf bytes.Buffer
-		err error
-	)
+		go singleConnection.Worker()
+	}
 
-	payloadSize := uint32(len(value) + len(key) + 10)
-	err = binary.Write(&buf, binary.LittleEndian, payloadSize)
+	return nil
+}
+
+type SingleConnection struct {
+	communicatorCh chan Communicator
+	reqStore       map[string]chan []byte
+	net.Conn
+}
+
+func NewSingleConnection(communicatorCh chan Communicator, addr string) (*SingleConnection, error) {
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
-	//set operation
-	if err = buf.WriteByte(operation); err != nil {
-		return nil, err
-	}
+	return &SingleConnection{
+		reqStore:       make(map[string]chan []byte),
+		communicatorCh: communicatorCh,
+		Conn:           conn,
+	}, nil
+}
 
-	//key length
-	keyLength := uint8(len(key))
-	err = binary.Write(&buf, binary.LittleEndian, keyLength)
+func (s *SingleConnection) Worker() {
+	for payload := range s.communicatorCh {
+		s.reqStore[payload.reqID] = payload.response
+
+		_, err := s.Conn.Write(payload.payload)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		//
+	}
+}
+
+func (d *Driver) SetReq(key, value []byte, ttl int) (<-chan []byte, error) {
+	newResponse, reqId := make(chan []byte), GenerateReqID()
+
+	payload, err := SetDriver(key, value, reqId, ttl)
 	if err != nil {
 		return nil, err
 	}
 
-	//set ttl
-	TTL := uint32(ttl)
-	err = binary.Write(&buf, binary.LittleEndian, TTL)
+	d.PayloadCh <- NewCommunicator(payload, newResponse, string(reqId))
+
+	return newResponse, nil
+}
+
+func GenerateReqID() []byte {
+	id := make([]byte, 12)
+	_, err := rand.Read(id)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Failed to generate random ID: %v", err))
 	}
 
-	//set body length
-	bodyLength := uint32(len(value))
-	err = binary.Write(&buf, binary.LittleEndian, bodyLength)
-	if err != nil {
-		return nil, err
-	}
-
-	//set real key
-	if _, err = buf.Write(key); err != nil {
-		return nil, err
-	}
-
-	//Set real body
-	if _, err = buf.Write(value); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-// operation
-// key length
-// ttl - 4 byte
-// payload - 4 byte
-func Decode(payload []byte) (byte, uint32, uint32, uint32) {
-	return payload[0], uint32(payload[1]), LittleEndian(payload[2:6]), LittleEndian(payload[6:10])
-}
-
-func TestDecode(payload []byte) (uint32, byte, uint32, uint32, uint32) {
-	return LittleEndian(payload[:4]), payload[4], uint32(payload[5]), LittleEndian(payload[6:10]), LittleEndian(payload[10:14])
-}
-
-func LittleEndian(payload []byte) uint32 {
-	return uint32(payload[0]) |
-		uint32(payload[1])<<8 |
-		uint32(payload[2])<<16 |
-		uint32(payload[3])<<24
-}
-
-func DecodeLength(size []byte) int {
-	return int(LittleEndian(size))
+	return id
 }

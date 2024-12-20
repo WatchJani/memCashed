@@ -91,3 +91,47 @@ func BenchmarkSetReqPerSecond(b *testing.B) {
 		SenderCh <- dataPayload
 	}
 }
+
+func BenchmarkSynchronous(b *testing.B) {
+	b.StopTimer()
+
+	numberOfConnection := 100
+	SenderCh := make(chan []byte)
+
+	//Workers
+	for range numberOfConnection {
+		conn, err := net.Dial("tcp", Port)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		//write data
+		go func(conn net.Conn) {
+			buff := make([]byte, 4096)
+			for {
+				payload := <-SenderCh
+				if _, err := conn.Write(payload); err != nil {
+					log.Println(err)
+				}
+
+				if _, err := conn.Read(buff); err != nil {
+					log.Println("?", err)
+				}
+			}
+		}(conn)
+	}
+
+	dataPayload, err := client.Set([]byte("super mario"), []byte("game"), 2121321321)
+
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		SenderCh <- dataPayload
+	}
+}

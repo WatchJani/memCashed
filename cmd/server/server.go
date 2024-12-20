@@ -38,11 +38,6 @@ func New() *Server {
 	}
 }
 
-// just for testing
-func (s *Server) GetNumberOfReq() int {
-	return s.Manager.GetNumberOfReq()
-}
-
 func (s *Server) Run() error {
 	ls, err := net.Listen("tcp", s.Add)
 	if err != nil {
@@ -58,8 +53,24 @@ func (s *Server) Run() error {
 			continue
 		}
 
+		s.ActiveConn++
+
+		if s.ActiveConn > s.MaxConn {
+			if err := conn.Close(); err != nil {
+				log.Println(err)
+			}
+		}
+
 		go s.HandleConn(conn)
 	}
+}
+
+// Decreases the number of active connections.
+func (s *Server) decrease() {
+	s.Lock()
+	defer s.Unlock()
+
+	s.ActiveConn--
 }
 
 func Close(c io.Closer, msg string) {
@@ -71,7 +82,10 @@ func Close(c io.Closer, msg string) {
 }
 
 func (s *Server) HandleConn(conn net.Conn) {
-	defer Close(conn, "connection is close")
+	defer func() {
+		Close(conn, "connection is close")
+		s.decrease()
+	}()
 
 	var (
 		buf         = make([]byte, BufferSizeTCP)
@@ -152,4 +166,9 @@ func (s *Server) HandleConn(conn net.Conn) {
 
 func (s *Server) Req(buf []byte, conn net.Conn) {
 	s.Manager.JobCh <- memory_allocator.NewTransfer(buf, conn)
+}
+
+// just for testing
+func (s *Server) GetNumberOfReq() int {
+	return s.Manager.GetNumberOfReq()
 }

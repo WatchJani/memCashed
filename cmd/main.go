@@ -111,7 +111,7 @@ func main() {
 
 	go func() {
 		time.Sleep(time.Millisecond)
-		numberOfConnection := 100
+		numberOfConnection := 15
 		SenderCh := make(chan []byte)
 
 		//Workers

@@ -5,53 +5,12 @@ import (
 	"log"
 	"net"
 	"root/client"
-	"root/cmd/memory_allocator"
 	"root/cmd/server"
 	"time"
 )
 
-type CustomSlab struct {
-	Capacity          int `yaml:"chunk_capacity"`
-	MaxMemoryAllocate int `yaml:"max_allocate_memory"`
-}
-
-func DefaultSlabs() []CustomSlab {
-	return []CustomSlab{
-		{64, 0},
-		{128, 0},
-		{256, 0},
-		{512, 0},
-		{1024, 0},
-		{2048, 0},
-		{4096, 0},
-		{8192, 0},
-		{16384, 0},
-		{32768, 0},
-		{65536, 0},
-		{131072, 0},
-		{262144, 0},
-		{524288, 0},
-		{1048576, 0},
-	}
-}
-
 func main() {
-	slabs := DefaultSlabs()
-
-	allocator := memory_allocator.New(5 * 1024 * 1024 * 1024)
-
-	slabAllocator := make([]memory_allocator.Slab, len(slabs))
-	for i := range slabAllocator {
-		slab := slabs[i]
-		slabAllocator[i] = memory_allocator.NewSlab(slab.Capacity, slab.MaxMemoryAllocate, allocator)
-	}
-
-	Manager := memory_allocator.NewSlabManager(slabAllocator)
-
-	s := server.Server{
-		Add:     ":5000",
-		Manager: Manager,
-	}
+	s := server.New()
 
 	//single core
 	// go func() {
@@ -147,7 +106,7 @@ func main() {
 		}
 
 		time.Sleep(12_000 * time.Millisecond)
-		fmt.Println("req:", Manager.GetNumberOfReq())
+		fmt.Println("req:", s.GetNumberOfReq())
 	}()
 
 	if err := s.Run(); err != nil {

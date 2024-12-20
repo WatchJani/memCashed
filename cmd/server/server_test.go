@@ -8,16 +8,46 @@ import (
 	"time"
 )
 
-func Benchmark(b *testing.B) {
+const Port string = ":5000"
+
+func CreateConnectionWithServer() (net.Conn, error) {
+	return net.Dial("tpc", Port)
+}
+
+func SetReq(key, value string, conn net.Conn) error {
+	dataPayload, err := client.Set([]byte(key), []byte(value), 2121321321)
+	if err != nil {
+		return err
+	}
+
+	if _, err := conn.Write(dataPayload); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TestGetReq(t *testing.T) {
+	conn, err := CreateConnectionWithServer()
+	if err != nil {
+		t.Fail()
+	}
+
+	if err := SetReq("super mario", "game", conn); err != nil {
+		t.Error(err)
+	}
+
+}
+
+func BenchmarkSetReqPerSecond(b *testing.B) {
 	b.StopTimer()
 
 	numberOfConnection := 100
 	SenderCh := make(chan []byte)
-	port := ":5000"
 
 	//Workers
 	for range numberOfConnection {
-		conn, err := net.Dial("tcp", port)
+		conn, err := net.Dial("tcp", Port)
 		if err != nil {
 			log.Fatal(err)
 			return

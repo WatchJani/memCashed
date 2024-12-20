@@ -6,7 +6,9 @@ import (
 	"log"
 	"net"
 	"root/client"
+	"root/cmd/internal/types"
 	"root/cmd/memory_allocator"
+	"sync"
 )
 
 const (
@@ -16,8 +18,29 @@ const (
 )
 
 type Server struct {
-	Add     string
+	Add        string
+	MaxConn    int
+	ActiveConn int
+	sync.RWMutex
 	Manager *memory_allocator.SlabManager
+}
+
+func New() *Server {
+	config := types.LoadConfiguration()
+	newAllocator := config.MemoryAllocator()
+
+	return &Server{
+		Add:     config.Port(),
+		MaxConn: config.MaxConnection(),
+		Manager: memory_allocator.NewSlabManager(
+			config.Slabs(newAllocator),
+		),
+	}
+}
+
+// just for testing
+func (s *Server) GetNumberOfReq() int {
+	return s.Manager.GetNumberOfReq()
 }
 
 func (s *Server) Run() error {

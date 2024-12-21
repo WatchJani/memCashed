@@ -12,7 +12,7 @@ import (
 
 // Constant values used for memory operations and server configuration.
 const (
-	MiB                       = 1024 * 1024 // 1 MiB in bytes
+	KiB                       = 1024 // 1 MiB in bytes
 	MinimumNumberOfConnection = 5           // Minimum number of connections to the server
 	IntDefaultValue           = 0           // Default value for integers
 	DefaultPort               = 5001        // Default server port
@@ -74,7 +74,7 @@ func (c *Config) MemoryAllocator() *memory_allocator.Allocator {
 	}
 
 	// Returns a new memory allocator with the specified memory size
-	return memory_allocator.New(memorySize * MiB)
+	return memory_allocator.New(memorySize * KiB)
 }
 
 // Returns the default slabs with predefined capacities and maximum memory allocations.

@@ -2,48 +2,6 @@ goos: linux
 goarch: amd64
 pkg: root/cmd/server
 cpu: AMD Ryzen 5 3500X 6-Core Processor             
-BenchmarkSynchronous-6   	2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-2024/12/21 15:10:30 Read error: EOF
-  357931	      3512 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSynchronous-6   	  349062	      3445 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	root/cmd/server	1.310s
+ok  	root/cmd/server	1.255s

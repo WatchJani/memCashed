@@ -5,10 +5,11 @@ import (
 	"io"
 	"log"
 	"net"
-	"root/client"
-	"root/cmd/internal/types"
-	"root/cmd/memory_allocator"
 	"sync"
+
+	"github.com/WatchJani/memCashed/tree/master/client"
+	"github.com/WatchJani/memCashed/tree/master/cmd/internal/types"
+	"github.com/WatchJani/memCashed/tree/master/cmd/memory_allocator"
 )
 
 const (

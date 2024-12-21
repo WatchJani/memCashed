@@ -3,7 +3,7 @@ package server
 import (
 	"log"
 	"net"
-	"root/client"
+	"github.com/WatchJani/memCashed/tree/master/client"
 	"sync"
 	"testing"
 )

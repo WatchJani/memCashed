@@ -1,8 +1,6 @@
 package client
 
 import (
-	"crypto/rand"
-	"fmt"
 	"log"
 	"net"
 )
@@ -17,14 +15,12 @@ type Driver struct {
 type Communicator struct {
 	payload  []byte
 	response chan []byte
-	reqID    string
 }
 
-func NewCommunicator(payload []byte, response chan []byte, reqID string) Communicator {
+func NewCommunicator(payload []byte, response chan []byte) Communicator {
 	return Communicator{
 		payload:  payload,
 		response: response,
-		reqID:    reqID,
 	}
 }
 
@@ -53,7 +49,6 @@ func (d *Driver) Init() error {
 
 type SingleConnection struct {
 	communicatorCh chan Communicator
-	reqStore       map[string]chan []byte
 	net.Conn
 }
 
@@ -64,45 +59,54 @@ func NewSingleConnection(communicatorCh chan Communicator, addr string) (*Single
 	}
 
 	return &SingleConnection{
-		reqStore:       make(map[string]chan []byte),
 		communicatorCh: communicatorCh,
 		Conn:           conn,
 	}, nil
 }
 
+// AsynchronousMode
 func (s *SingleConnection) Worker() {
+	readBuffer := make([]byte, 1024*1024+10)
 	for payload := range s.communicatorCh {
-		s.reqStore[payload.reqID] = payload.response
-
 		_, err := s.Conn.Write(payload.payload)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		//
+		n, err := s.Conn.Read(readBuffer)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		payload.response <- readBuffer[:n]
 	}
 }
 
-func (d *Driver) SetReq(key, value []byte, ttl int) (<-chan []byte, error) {
-	newResponse, reqId := make(chan []byte), GenerateReqID()
+type Operation func(byte, []byte, []byte, int) ([]byte, error)
 
-	payload, err := SetDriver(key, value, reqId, ttl)
+func (d *Driver) SetReq(key, value []byte, ttl int) (<-chan []byte, error) {
+	return d.OperationReq(Set(key, value, ttl))
+}
+
+func (d *Driver) GetReq(key []byte) (<-chan []byte, error) {
+	return d.OperationReq(Get(key))
+}
+
+func (d *Driver) DeleteReq(key []byte) (<-chan []byte, error) {
+	return d.OperationReq(Delete(key))
+}
+
+func (d *Driver) OperationReq(payload []byte, err error) (<-chan []byte, error) {
 	if err != nil {
 		return nil, err
 	}
 
-	d.PayloadCh <- NewCommunicator(payload, newResponse, string(reqId))
+	newResponse := make(chan []byte)
+
+	d.PayloadCh <- NewCommunicator(payload, newResponse)
 
 	return newResponse, nil
-}
 
-func GenerateReqID() []byte {
-	id := make([]byte, 12)
-	_, err := rand.Read(id)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to generate random ID: %v", err))
-	}
-
-	return id
 }

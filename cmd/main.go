@@ -133,10 +133,8 @@ func main() {
 
 					_, err := conn.Read(buff)
 					if err != nil {
-						log.Println("?", err)
+						log.Println(err)
 					}
-
-					// fmt.Println(string(buff[:n]))
 				}
 			}(conn)
 		}
@@ -150,7 +148,7 @@ func main() {
 
 		start := time.Now()
 
-		for i := 0; i < 350_000; i++ {
+		for i := 0; i < 1_350_000; i++ {
 			SenderCh <- dataPayload
 		}
 

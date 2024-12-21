@@ -87,16 +87,10 @@ func (s *Server) HandleConn(conn net.Conn) {
 		s.decrease()
 	}()
 
-	var (
-		buf         = make([]byte, BufferSizeTCP)
-		pointer     int
-		active      bool
-		payloadSize = make([]byte, PayloadSizeLength)
-		slabBlock   []byte
-	)
+	bufSize := make([]byte, 4)
 
 	for {
-		n, err := conn.Read(buf)
+		_, err := conn.Read(bufSize)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
@@ -105,63 +99,22 @@ func (s *Server) HandleConn(conn net.Conn) {
 			break
 		}
 
-		if active {
-			temp := pointer
-			pointer = 0
-
-			var end int
-			if temp < PayloadSizeLength {
-				pointer = PayloadSizeLength - temp
-				temp += copy(payloadSize[temp:], buf[:pointer])
-				temp = 0
-
-				end = client.DecodeLength(payloadSize)
-				slabBlock, err = s.Manager.GetSlab(end, conn)
-				if err != nil {
-					log.Println(err)
-				}
-
-			} else {
-				end = client.DecodeLength(payloadSize)
-			}
-
-			copy(slabBlock[temp:], buf[pointer:end-temp+PayloadSizeLength])
-			pointer += end - temp
+		payloadSize := client.DecodeLength(bufSize)
+		slabBlock, err := s.Manager.GetSlab(payloadSize, conn)
+		if err != nil {
+			log.Println(err)
 		}
 
-		for {
-			if !active {
-				if pointer+PayloadSizeLength > n {
-					copy(payloadSize, buf[pointer:])
-					pointer = n - pointer
-					active = true
-					break
-				} else {
-					copy(payloadSize, buf[pointer:pointer+PayloadSizeLength])
-				}
-
-				end := pointer + client.DecodeLength(buf[pointer:pointer+PayloadSizeLength]) + PayloadSizeLength
-				slabBlock, err = s.Manager.GetSlab(end-pointer, conn)
-				if err != nil {
-					log.Println(err)
-				}
-
-				pointer += PayloadSizeLength
-				if end > n {
-					copy(slabBlock, buf[pointer:])
-					pointer = n - pointer
-					active = true
-					break
-				}
-
-				copy(slabBlock, buf[pointer:end])
-				pointer = end
+		_, err = conn.Read(slabBlock)
+		if err != nil {
+			if err != io.EOF {
+				log.Println("Error reading from connection:", err)
 			}
 
-			//83 ....
-			s.Req(slabBlock, conn)
-			active = false
+			break
 		}
+
+		s.Req(slabBlock, conn)
 	}
 }
 

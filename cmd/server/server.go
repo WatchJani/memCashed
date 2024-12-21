@@ -90,13 +90,18 @@ func (s *Server) HandleConn(conn net.Conn) {
 	bufSize := make([]byte, 4)
 
 	for {
-		_, err := conn.Read(bufSize)
+		//read first 4 byte
+		n, err := conn.Read(bufSize)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
 			}
 
 			break
+		}
+
+		if n < 4 {
+			continue
 		}
 
 		payloadSize := client.DecodeLength(bufSize)

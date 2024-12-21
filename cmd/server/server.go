@@ -158,6 +158,7 @@ func (s *Server) HandleConn(conn net.Conn) {
 				pointer = end
 			}
 
+			//83 ....
 			s.Req(slabBlock, conn)
 			active = false
 		}

@@ -3,9 +3,10 @@ package server
 import (
 	"log"
 	"net"
-	"github.com/WatchJani/memCashed/tree/master/client"
 	"sync"
 	"testing"
+
+	"github.com/WatchJani/memCashed/client"
 )
 
 const Port string = ":5000"

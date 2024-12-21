@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"github.com/WatchJani/memCashed/tree/master/cmd/internal/cli"
-	"github.com/WatchJani/memCashed/tree/master/cmd/memory_allocator"
+	"github.com/WatchJani/memCashed/cmd/internal/cli"
+	"github.com/WatchJani/memCashed/cmd/memory_allocator"
 
 	"gopkg.in/yaml.v3"
 )

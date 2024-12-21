@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"github.com/WatchJani/memCashed/tree/master/cmd/server"
+	"github.com/WatchJani/memCashed/cmd/server"
 )
 
 // main is the entry point of the application. It initializes a new server instance

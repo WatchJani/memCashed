@@ -7,9 +7,9 @@ import (
 	"net"
 	"sync"
 
-	"github.com/WatchJani/memCashed/tree/master/client"
-	"github.com/WatchJani/memCashed/tree/master/cmd/internal/types"
-	"github.com/WatchJani/memCashed/tree/master/cmd/memory_allocator"
+	"github.com/WatchJani/memCashed/client"
+	"github.com/WatchJani/memCashed/cmd/internal/types"
+	"github.com/WatchJani/memCashed/cmd/memory_allocator"
 )
 
 const (

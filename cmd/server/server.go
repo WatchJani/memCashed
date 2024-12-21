@@ -105,7 +105,7 @@ func (s *Server) HandleConn(conn net.Conn) {
 		}
 
 		payloadSize := client.DecodeLength(bufSize)
-		slabBlock, err := s.Manager.GetSlab(payloadSize, conn)
+		slabBlock, index, err := s.Manager.GetSlab(payloadSize, conn)
 		if err != nil {
 			log.Println(err)
 		}
@@ -119,12 +119,12 @@ func (s *Server) HandleConn(conn net.Conn) {
 			break
 		}
 
-		s.Req(slabBlock, conn)
+		s.Req(slabBlock, index, conn)
 	}
 }
 
-func (s *Server) Req(buf []byte, conn net.Conn) {
-	s.Manager.JobCh <- memory_allocator.NewTransfer(buf, conn)
+func (s *Server) Req(buf []byte, index int, conn net.Conn) {
+	s.Manager.JobCh <- memory_allocator.NewTransfer(buf, index, conn)
 }
 
 // just for testing

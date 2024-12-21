@@ -17,8 +17,15 @@ func TestSetReq(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err := driver.SetReq(key, value, ttl)
+	res, err := driver.SetReq(key, value, ttl)
 	if err != nil {
 		t.Error(err)
+	}
+
+	expect := "object inserted"
+	get := string(<-res)
+
+	if expect != get {
+		t.Errorf("expected: %s | get: %s", expect, get)
 	}
 }

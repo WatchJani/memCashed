@@ -29,6 +29,7 @@ type SlabManager struct {
 type Transfer struct {
 	payload []byte
 	conn    net.Conn
+	index   int
 }
 
 type Key struct {
@@ -37,10 +38,11 @@ type Key struct {
 	pointer *link_list.Node
 }
 
-func NewTransfer(payload []byte, conn net.Conn) Transfer {
+func NewTransfer(payload []byte, index int, conn net.Conn) Transfer {
 	return Transfer{
 		payload: payload,
 		conn:    conn,
+		index:   index,
 	}
 }
 
@@ -80,7 +82,7 @@ func NewSlabManager(slabs []Slab) *SlabManager {
 
 var NoReq []byte = make([]byte, 1024*1024+10)
 
-func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, error) {
+func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, int, error) {
 	slabIndex, chunkSize := s.GetIndex(payloadSize)
 
 	slabBlock, err := s.ChoseSlab(slabIndex).AllocateMemory()
@@ -97,7 +99,7 @@ func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, error) {
 			// and if I can't allocate memory to my server I still have to read the req to the end
 			_, err := conn.Read(NoReq)
 			if err != nil {
-				return nil, err
+				return nil, -1, err
 			}
 		}
 
@@ -118,7 +120,7 @@ func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, error) {
 		s.store.Delete(lastNode.GetKey())
 	}
 
-	return slabBlock, nil
+	return slabBlock, slabIndex, nil
 }
 
 func TLLParser(ttl uint32) time.Time {
@@ -135,8 +137,6 @@ func (s *SlabManager) GetNumberOfReq() int {
 
 func (s *SlabManager) Worker() {
 	for payload := range s.JobCh {
-		// operation, keySize, ttl, bodySize := client.Decode(payload.payload)
-		index, _ := s.GetIndex(len(payload.payload))
 		switch payload.payload[0] {
 		case 'S':
 			_, keySize, ttl, bodySize := client.Decode(payload.payload)
@@ -150,7 +150,7 @@ func (s *SlabManager) Worker() {
 
 			//insert in lru
 
-			s.lru[index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
+			s.lru[payload.index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
 
 			if _, err := payload.conn.Write([]byte("object inserted")); err != nil {
 				log.Println(err)
@@ -174,7 +174,7 @@ func (s *SlabManager) Worker() {
 			value := valueObject.(Key)
 			if !value.ttl.IsZero() && time.Now().After(value.ttl) {
 				s.store.Delete(key)
-				s.lru[index].Delete(value.pointer) //delete from lru
+				s.lru[payload.index].Delete(value.pointer) //delete from lru
 				if _, err := payload.conn.Write([]byte("time expire")); err != nil {
 					log.Println(err)
 				}
@@ -199,7 +199,7 @@ func (s *SlabManager) Worker() {
 			value := valueObject.(Key)
 			s.store.Delete(key)
 
-			s.lru[index].Delete(value.pointer) //delete from lru
+			s.lru[payload.index].Delete(value.pointer) //delete from lru
 			// obj.lru. //add to stack
 			if _, err := payload.conn.Write([]byte("Deleted")); err != nil {
 				log.Println(err)

@@ -141,10 +141,10 @@ func (s *SlabManager) Worker() {
 		case 'S':
 			_, keySize, ttl, bodySize := client.Decode(payload.payload)
 
-			key := string(payload.payload[10 : 10+keySize+keySize])
+			key := string(payload.payload[10 : 10+keySize])
 
 			s.store.Store(key, Key{
-				field: payload.payload[10 : 10+bodySize],
+				field: payload.payload[10+keySize : 10+bodySize+keySize],
 				ttl:   TLLParser(ttl),
 			})
 
@@ -161,7 +161,7 @@ func (s *SlabManager) Worker() {
 			s.Unlock()
 		case 'G':
 			_, keySize, _, _ := client.Decode(payload.payload) //another parser i need
-			key := string(payload.payload[10 : 10+keySize+keySize])
+			key := string(payload.payload[10 : 10+keySize])
 
 			valueObject, isFound := s.store.Load(key)
 			if !isFound {
@@ -186,7 +186,7 @@ func (s *SlabManager) Worker() {
 			}
 		case 'D':
 			_, keySize, _, _ := client.Decode(payload.payload) //another parser i need
-			key := string(payload.payload[10 : 10+keySize+keySize])
+			key := string(payload.payload[10 : 10+keySize])
 
 			valueObject, isFound := s.store.Load(key)
 			if !isFound {

@@ -29,3 +29,36 @@ func TestSetReq(t *testing.T) {
 		t.Errorf("expected: %s | get: %s", expect, get)
 	}
 }
+
+func Store(driver *Driver) error {
+	_, err := driver.SetReq(key, value, ttl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TestGetReq(t *testing.T) {
+	driver := New(":5000", 15)
+
+	if err := driver.Init(); err != nil {
+		t.Error(err)
+	}
+
+	if err := Store(driver); err != nil {
+		t.Error(err)
+	}
+
+	res, err := driver.GetReq(key)
+	if err != nil {
+		t.Log(err)
+	}
+
+	get := string(<-res)
+	expected := string(value)
+
+	if get != expected {
+		t.Errorf("expected: %s | get: %s", expected, get)
+	}
+}

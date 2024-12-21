@@ -25,6 +25,8 @@ type Server struct {
 	Manager *memory_allocator.SlabManager
 }
 
+// New initializes a new Server instance by loading the configuration
+// and setting up the slab memory allocator.
 func New() *Server {
 	config := types.LoadConfiguration()
 	newAllocator := config.MemoryAllocator()
@@ -34,10 +36,13 @@ func New() *Server {
 		MaxConn: config.MaxConnection(),
 		Manager: memory_allocator.NewSlabManager(
 			config.Slabs(newAllocator),
+			config.NumberWorker(),
 		),
 	}
 }
 
+// Run starts the server, listens for incoming TCP connections,
+// and handles them concurrently. It also enforces a maximum connection limit.
 func (s *Server) Run() error {
 	ls, err := net.Listen("tcp", s.Add)
 	if err != nil {
@@ -65,7 +70,8 @@ func (s *Server) Run() error {
 	}
 }
 
-// Decreases the number of active connections.
+// decrease reduces the active connection count by one.
+// This method ensures thread-safety using a write lock.
 func (s *Server) decrease() {
 	s.Lock()
 	defer s.Unlock()
@@ -73,6 +79,8 @@ func (s *Server) decrease() {
 	s.ActiveConn--
 }
 
+// Close safely closes an io.Closer resource (e.g., a connection or listener)
+// and logs an optional message if closing fails.
 func Close(c io.Closer, msg string) {
 	fmt.Println(msg)
 
@@ -81,6 +89,8 @@ func Close(c io.Closer, msg string) {
 	}
 }
 
+// HandleConn processes an individual TCP connection, reading data,
+// allocating slab memory, and delegating requests to a job channel.
 func (s *Server) HandleConn(conn net.Conn) {
 	defer func() {
 		Close(conn, "connection is close")
@@ -91,17 +101,13 @@ func (s *Server) HandleConn(conn net.Conn) {
 
 	for {
 		//read first 4 byte
-		n, err := conn.Read(bufSize)
+		_, err := conn.Read(bufSize)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from connection:", err)
 			}
 
 			break
-		}
-
-		if n < 4 {
-			continue
 		}
 
 		payloadSize := client.DecodeLength(bufSize)
@@ -123,11 +129,8 @@ func (s *Server) HandleConn(conn net.Conn) {
 	}
 }
 
+// Req sends a processed request to the slab manager's job channel,
+// including the payload, index, and connection.
 func (s *Server) Req(buf []byte, index int, conn net.Conn) {
 	s.Manager.JobCh <- memory_allocator.NewTransfer(buf, index, conn)
-}
-
-// just for testing
-func (s *Server) GetNumberOfReq() int {
-	return s.Manager.GetNumberOfReq()
 }

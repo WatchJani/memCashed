@@ -14,30 +14,39 @@ import (
 )
 
 var (
+	// ErrOperationIsNotSupported is the error returned when an unsupported operation is attempted.
 	ErrOperationIsNotSupported = errors.New("operation is not supported")
+
+	// NoReq is a buffer used for reading unprocessed data when memory allocation fails.
+	HeaderSize        = 10
+	NoReq      []byte = make([]byte, MiB+HeaderSize) // Buffer to read unprocessed data
+
 )
 
+// SlabManager manages slabs, LRU (Least Recently Used) caches, and memory allocation.
 type SlabManager struct {
-	slabs []Slab
-	lru   []link_list.DLL
-	sync.RWMutex
-	store   sync.Map
-	JobCh   chan Transfer
-	counter int
+	slabs        []Slab          // Slabs for memory allocation
+	lru          []link_list.DLL // Least Recently Used (LRU) cache for each slab
+	sync.RWMutex                 // Mutex to protect concurrent access to shared data
+	store        sync.Map        // Store to hold key-value pairs for cache management
+	JobCh        chan Transfer   // Channel to receive transfer jobs for processing
 }
 
+// Transfer represents a data payload and connection information for a transfer task.
 type Transfer struct {
-	payload []byte
-	conn    net.Conn
-	index   int
+	payload []byte   // Data payload
+	conn    net.Conn // Network connection
+	index   int      // Index of the slab category
 }
 
+// Key represents a stored object with its field, TTL (Time-To-Live), and a pointer to its node in the LRU list.
 type Key struct {
-	field   []byte
-	ttl     time.Time
-	pointer *link_list.Node
+	field   []byte          // Object data field
+	ttl     time.Time       // Time-To-Live for the object
+	pointer *link_list.Node // Pointer to the node in the LRU list
 }
 
+// NewTransfer creates a new Transfer object with the specified payload, index, and connection.
 func NewTransfer(payload []byte, index int, conn net.Conn) Transfer {
 	return Transfer{
 		payload: payload,
@@ -46,53 +55,56 @@ func NewTransfer(payload []byte, index int, conn net.Conn) Transfer {
 	}
 }
 
+// FreeSpace frees space in the slab's LRU cache by removing the least recently used node.
 func (s *SlabManager) FreeSpace(index, slabSize int) ([]byte, string) {
 	s.Lock()
 	defer s.Unlock()
 
-	lastNode := s.lru[index].LastNode()
+	lastNode := s.lru[index].LastNode() // Get the last (least recently used) node
 
-	s.lru[index].Delete(lastNode) //Delete last node in
-	// s.lru[index].Read(lastNode) //set node to root
+	s.lru[index].Delete(lastNode) // Delete the last node in the LRU cache
 
+	// Get free space from LRU after deleting the node
 	return s.lru[index].GetLRUFreeSpace(lastNode, slabSize), lastNode.GetKey()
 }
 
+// GetSlabIndex returns the slab at the specified index.
 func (s *SlabManager) GetSlabIndex(index int) *Slab {
 	return &s.slabs[index]
 }
 
+// GetLRUIndex returns the LRU cache at the specified index.
 func (s *SlabManager) GetLRUIndex(index int) *link_list.DLL {
 	return &s.lru[index]
 }
 
-func NewSlabManager(slabs []Slab) *SlabManager {
+// NewSlabManager creates a new SlabManager with the provided slabs and starts worker goroutines.
+func NewSlabManager(slabs []Slab, numberOfWorker int) *SlabManager {
 	sm := &SlabManager{
 		slabs: slabs,
-		lru:   make([]link_list.DLL, len(slabs)),
-		JobCh: make(chan Transfer),
+		lru:   make([]link_list.DLL, len(slabs)), // Initialize LRU for each slab
+		JobCh: make(chan Transfer),               // Channel for receiving transfer jobs
 	}
 
-	for range slabs {
+	// Start a worker goroutine of numberOfWorker
+	for range numberOfWorker {
 		go sm.Worker()
 	}
 
 	return sm
 }
 
-var NoReq []byte = make([]byte, 1024*1024+10)
-
+// GetSlab allocates a slab of memory based on the payload size, handles errors, and frees space if necessary.
 func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, int, error) {
 	slabIndex, chunkSize := s.GetIndex(payloadSize)
 
+	// Attempt to allocate memory from the chosen slab
 	slabBlock, err := s.ChoseSlab(slabIndex).AllocateMemory()
 	if err != nil {
-		// If an error occurs during memory allocation,
-		// prints the error.
+		// If memory allocation fails, handle the error
 		fmt.Println(err)
 
-		// If the slab is not active, sends the error to the
-		// client and tries to read the rest of the request.
+		// If slab is inactive, notify the client and try to read the rest of the request
 		if !s.GetSlabIndex(slabIndex).IsSlabActive() {
 			conn.Write([]byte(err.Error()))
 
@@ -105,16 +117,11 @@ func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, int, erro
 
 		// If there is no more space in memory, uses LRU
 		// (Least Recently Used) policy to free up space.
-
 		s.Lock()
-		lastNode := s.lru[slabIndex].LastNode()
-
-		s.lru[slabIndex].Delete(lastNode) //Delete last node in
-		// s.lru[index].Read(lastNode) //set node to root
-
-		slabBlock = s.lru[slabIndex].GetLRUFreeSpace(lastNode, chunkSize)
+		lastNode := s.lru[slabIndex].LastNode()                           // Get the last LRU node
+		s.lru[slabIndex].Delete(lastNode)                                 // Delete last node in
+		slabBlock = s.lru[slabIndex].GetLRUFreeSpace(lastNode, chunkSize) // Get free space after deleting the node
 		s.Unlock()
-		// key := slabBlock[:keyLength]
 
 		// Deletes the key from the hash table.
 		s.store.Delete(lastNode.GetKey())
@@ -123,46 +130,41 @@ func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, int, erro
 	return slabBlock, slabIndex, nil
 }
 
+// TLLParser converts a TTL value into a time.Time object.
 func TLLParser(ttl uint32) time.Time {
 	if ttl > 0 {
-		return time.Now().Add(time.Duration(ttl) * time.Second)
+		return time.Now().Add(time.Duration(ttl) * time.Second) // Add TTL to the current time
 	}
 
-	return time.Time{}
+	return time.Time{} // Return an empty time if TTL is 0
 }
 
-func (s *SlabManager) GetNumberOfReq() int {
-	return s.counter
-}
-
+// Worker listens for transfer jobs and processes them based on the payload command.
 func (s *SlabManager) Worker() {
 	for payload := range s.JobCh {
 		switch payload.payload[0] {
-		case 'S':
-			_, keySize, ttl, bodySize := client.Decode(payload.payload)
+		case 'S': // Command to store data
+			_, keySize, ttl, bodySize := client.Decode(payload.payload) // Decode the payload
 
-			key := string(payload.payload[10 : 10+keySize])
+			key := string(payload.payload[10 : 10+keySize]) // Extract key from the payload
 
+			// Store the key-value pair in the store with TTL
 			s.store.Store(key, Key{
 				field: payload.payload[10+keySize : 10+bodySize+keySize],
 				ttl:   TLLParser(ttl),
 			})
 
-			//insert in lru
-
+			// Insert the key into the LRU cache
 			s.lru[payload.index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
 
 			if _, err := payload.conn.Write([]byte("object inserted")); err != nil {
-				log.Println(err)
+				log.Println(err) // Log any errors that occur while writing to the connection
 			}
+		case 'G': // Command to get data
+			_, keySize, _, _ := client.Decode(payload.payload) // Decode the payload
+			key := string(payload.payload[10 : 10+keySize])    // Extract key from the payload
 
-			s.Lock()
-			s.counter++
-			s.Unlock()
-		case 'G':
-			_, keySize, _, _ := client.Decode(payload.payload) //another parser i need
-			key := string(payload.payload[10 : 10+keySize])
-
+			// Fetch the value from the store
 			valueObject, isFound := s.store.Load(key)
 			if !isFound {
 				if _, err := payload.conn.Write([]byte("object not found")); err != nil {
@@ -172,22 +174,25 @@ func (s *SlabManager) Worker() {
 			}
 
 			value := valueObject.(Key)
+			// Check if the TTL has expired and delete the object if expired
 			if !value.ttl.IsZero() && time.Now().After(value.ttl) {
 				s.store.Delete(key)
-				s.lru[payload.index].Delete(value.pointer) //delete from lru
+				s.lru[payload.index].Delete(value.pointer) // Remove the node from LRU
 				if _, err := payload.conn.Write([]byte("time expire")); err != nil {
 					log.Println(err)
 				}
 				continue
 			}
 
+			// Return the field data if found
 			if _, err := payload.conn.Write(value.field); err != nil {
 				log.Println(err)
 			}
-		case 'D':
-			_, keySize, _, _ := client.Decode(payload.payload) //another parser i need
-			key := string(payload.payload[10 : 10+keySize])
+		case 'D': // Command to delete data
+			_, keySize, _, _ := client.Decode(payload.payload) // Decode the payload
+			key := string(payload.payload[10 : 10+keySize])    // Extract key from the payload
 
+			// Fetch and delete the object from the store
 			valueObject, isFound := s.store.Load(key)
 			if !isFound {
 				if _, err := payload.conn.Write([]byte("object not found")); err != nil {
@@ -199,8 +204,7 @@ func (s *SlabManager) Worker() {
 			value := valueObject.(Key)
 			s.store.Delete(key)
 
-			s.lru[payload.index].Delete(value.pointer) //delete from lru
-			// obj.lru. //add to stack
+			s.lru[payload.index].Delete(value.pointer) // Remove from LRU
 			if _, err := payload.conn.Write([]byte("Deleted")); err != nil {
 				log.Println(err)
 			}
@@ -210,6 +214,7 @@ func (s *SlabManager) Worker() {
 	}
 }
 
+// GetIndex performs a binary search to find the appropriate slab index based on the data size.
 func (s *SlabManager) GetIndex(dataSize int) (int, int) {
 	low, high := 0, len(s.slabs)-1
 	result := high
@@ -229,28 +234,32 @@ func (s *SlabManager) GetIndex(dataSize int) (int, int) {
 	return result, slabs[result].slabSize
 }
 
+// ChoseSlab returns the slab at the specified index.
 func (s *SlabManager) ChoseSlab(index int) *Slab {
 	return &s.slabs[index]
 }
 
+// Slab represents a memory slab used for allocation.
 type Slab struct {
-	slabSize    int
-	freeList    stack.Stack[[]byte]
-	currentPage []byte
-	pagePointer int
-	sync.RWMutex
-	*Allocator
+	slabSize     int                 // Size of the slab
+	freeList     stack.Stack[[]byte] // Stack of free blocks in the slab
+	currentPage  []byte              // Current memory page in the slab
+	pagePointer  int                 // Pointer to the current position in the slab
+	sync.RWMutex                     // Mutex to protect access to the slab
+	*Allocator                       // Memory allocator associated with the slab
 }
 
+// IsSlabActive checks if the slab has an active memory page.
 func (s *Slab) IsSlabActive() bool {
 	return s.currentPage != nil
 }
 
+// GetCurrentPage returns the current page of the slab.
 func (s *Slab) GetCurrentPage() []byte {
 	return s.currentPage
 }
 
-// maxMemoryAllocate not define yet
+// NewSlab creates a new Slab with the specified size and allocator.
 func NewSlab(slabSize, maxMemoryAllocate int, allocator *Allocator) Slab {
 	return Slab{
 		slabSize:  slabSize,
@@ -259,27 +268,33 @@ func NewSlab(slabSize, maxMemoryAllocate int, allocator *Allocator) Slab {
 	}
 }
 
+// AllocateMemory allocates memory for the slab, either by reusing a free block or allocating a new page.
 func (s *Slab) AllocateMemory() ([]byte, error) {
 	s.Lock()
 	defer s.Unlock()
 
+	// Try to pop from the free list if there are free blocks
 	if !s.freeList.IsEmpty() {
 		return s.freeList.Pop()
 	}
 
+	// Calculate the memory range for the new allocation
 	start := s.pagePointer
 	end := start + s.slabSize
 
+	// If no active page or insufficient space, allocate a new page
 	if s.currentPage == nil || !IsEnoughSpace(end, len(s.currentPage)) {
 		block, err := s.AllocateBlock()
 		if err != nil {
 			return nil, err
 		}
 
+		// Update the current page with the new block
 		s.UpdatePage(block)
 		return s.currentPage[0:s.slabSize], nil //new memory block
 	}
 
+	// Return the allocated memory block from the current page
 	return s.currentPage[start:end], nil
 }
 

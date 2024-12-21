@@ -5,6 +5,7 @@ import (
 	"net"
 )
 
+// Driver struct represents a client driver responsible for managing connections.
 type Driver struct {
 	Addr               string
 	NumberOfConnection int

@@ -67,8 +67,8 @@ func main() {
 		}
 
 		var (
-			key   = []byte("key")
-			value = []byte("value")
+			key   = []byte("=")
+			value = []byte("=?")
 			ttl   = -1
 		)
 

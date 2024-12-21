@@ -62,3 +62,41 @@ func TestGetReq(t *testing.T) {
 		t.Errorf("expected: %s | get: %s", expected, get)
 	}
 }
+
+func TestDeleteReq(t *testing.T) {
+	driver := New(":5000", 15)
+
+	if err := driver.Init(); err != nil {
+		t.Error(err)
+	}
+
+	if err := Store(driver); err != nil {
+		t.Error(err)
+	}
+
+	res, err := driver.DeleteReq(key)
+	if err != nil {
+		t.Log(err)
+	}
+
+	get := string(<-res)
+	expected := "Deleted"
+
+	if get != expected {
+		t.Errorf("expected: %s | get: %s", expected, get)
+	}
+
+	//===========================================0
+
+	res, err = driver.GetReq(key)
+	if err != nil {
+		t.Log(err)
+	}
+
+	get = string(<-res)
+	expected = "object not found"
+
+	if get != expected {
+		t.Errorf("expected: %s | get: %s", expected, get)
+	}
+}

@@ -32,7 +32,7 @@ func (n *Node) GetPointer() unsafe.Pointer {
 // Value represents the data in a node, containing a pointer and a key.
 type Value struct {
 	pointer unsafe.Pointer // Pointer to the actual data, storing memory location.
-	key     string         // Key used to link to the hash table or other data structure.
+	key     string         // Key used to link to the hash table.
 }
 
 // NewValue creates a new Value with the provided pointer and key.

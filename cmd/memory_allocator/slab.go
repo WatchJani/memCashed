@@ -185,6 +185,8 @@ func (s *SlabManager) Worker() {
 				continue
 			}
 
+			s.lru[payload.index].Read(value.pointer)
+
 			// Return the field data if found
 			if _, err := payload.conn.Write(value.field); err != nil {
 				log.Println(err)

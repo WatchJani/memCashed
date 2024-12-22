@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"github.com/WatchJani/memCashed/client"
-	"github.com/WatchJani/memCashed/cmd/link_list"
-	"github.com/WatchJani/memCashed/cmd/stack"
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/WatchJani/memCashed/client"
+	"github.com/WatchJani/memCashed/cmd/link_list"
+	"github.com/WatchJani/memCashed/cmd/stack"
 )
 
 var (
@@ -204,7 +205,10 @@ func (s *SlabManager) Worker() {
 			value := valueObject.(Key)
 			s.store.Delete(key)
 
+			memoryPointer := value.pointer.GetPointer()
+
 			s.lru[payload.index].Delete(value.pointer) // Remove from LRU
+			s.slabs[payload.index].freeList.Push(memoryPointer)
 			if _, err := payload.conn.Write([]byte("Deleted")); err != nil {
 				log.Println(err)
 			}
@@ -241,12 +245,12 @@ func (s *SlabManager) ChoseSlab(index int) *Slab {
 
 // Slab represents a memory slab used for allocation.
 type Slab struct {
-	slabSize     int                 // Size of the slab
-	freeList     stack.Stack[[]byte] // Stack of free blocks in the slab
-	currentPage  []byte              // Current memory page in the slab
-	pagePointer  int                 // Pointer to the current position in the slab
-	sync.RWMutex                     // Mutex to protect access to the slab
-	*Allocator                       // Memory allocator associated with the slab
+	slabSize     int                         // Size of the slab
+	freeList     stack.Stack[unsafe.Pointer] // Stack of free blocks in the slab
+	currentPage  []byte                      // Current memory page in the slab
+	pagePointer  int                         // Pointer to the current position in the slab
+	sync.RWMutex                             // Mutex to protect access to the slab
+	*Allocator                               // Memory allocator associated with the slab
 }
 
 // IsSlabActive checks if the slab has an active memory page.
@@ -263,7 +267,7 @@ func (s *Slab) GetCurrentPage() []byte {
 func NewSlab(slabSize, maxMemoryAllocate int, allocator *Allocator) Slab {
 	return Slab{
 		slabSize:  slabSize,
-		freeList:  stack.New[[]byte](10),
+		freeList:  stack.New[unsafe.Pointer](10),
 		Allocator: allocator,
 	}
 }
@@ -275,7 +279,8 @@ func (s *Slab) AllocateMemory() ([]byte, error) {
 
 	// Try to pop from the free list if there are free blocks
 	if !s.freeList.IsEmpty() {
-		return s.freeList.Pop()
+		ptr, err := s.freeList.Pop()
+		return unsafe.Slice((*byte)(ptr), s.slabSize), err
 	}
 
 	// Calculate the memory range for the new allocation

@@ -25,6 +25,10 @@ func (n *Node) GetKey() string {
 	return n.value.key // Return the key of the node's value.
 }
 
+func (n *Node) GetPointer() unsafe.Pointer {
+	return n.value.pointer
+}
+
 // Value represents the data in a node, containing a pointer and a key.
 type Value struct {
 	pointer unsafe.Pointer // Pointer to the actual data, storing memory location.

@@ -21,10 +21,12 @@ ENV PATH $GO_INSTALL_DIR/go/bin:$PATH
 RUN go version
 
 
+RUN apt-get update && apt-get install -y make
+
 # Postavljanje radnog direktorija unutar kontejnera
 WORKDIR /home
 
 # Kopiranje lokalnog Go koda u kontejner
 COPY . .
 
-WORKDIR /memCashed
+WORKDIR /home/memCashed

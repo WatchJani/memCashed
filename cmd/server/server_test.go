@@ -50,7 +50,7 @@ func Workers(SenderCh chan []byte, wg *sync.WaitGroup) {
 	}
 }
 
-func BenchmarkSynchronous(b *testing.B) {
+func BenchmarkSynchronousSet(b *testing.B) {
 	b.StopTimer()
 
 	SenderCh := make(chan []byte) // Buffered channel to prevent blocking
@@ -87,6 +87,32 @@ func BenchmarkSynchronousGet(b *testing.B) {
 
 	// Generate payload
 	dataPayload, err := client.Get(PayloadKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	b.StartTimer()
+
+	// Send data
+	for i := 0; i < b.N; i++ {
+		SenderCh <- dataPayload
+	}
+
+	close(SenderCh) // Close the channel to signal workers to stop
+	wg.Wait()       // Wait for all workers to finish
+}
+
+func BenchmarkSynchronousDelete(b *testing.B) {
+	b.StopTimer()
+
+	SenderCh := make(chan []byte) // Buffered channel to prevent blocking
+	var wg sync.WaitGroup
+
+	// Workers
+	Workers(SenderCh, &wg)
+
+	// Generate payload
+	dataPayload, err := client.Delete(PayloadKey)
 	if err != nil {
 		log.Fatal(err)
 	}

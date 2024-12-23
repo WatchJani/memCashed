@@ -7,7 +7,7 @@ run:
 
 
 test_log:
-	@go test ./cmd/server -bench BenchmarkSynchronous -benchmem &>> benchmarkSynchronous.log
+	@go test ./cmd/server -bench BenchmarkSynchronousSet -benchmem &>> benchmarkSynchronous.log
 
 test_duration:
-	@go test ./cmd/server -bench BenchmarkSynchronous -benchtime 5s
+	@go test ./cmd/server -bench BenchmarkSynchronousSet -benchtime 5s

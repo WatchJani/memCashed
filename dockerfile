@@ -28,5 +28,3 @@ WORKDIR /home
 
 # Kopiranje lokalnog Go koda u kontejner
 COPY . .
-
-WORKDIR /home/memCashed

@@ -1,6 +1,9 @@
 package constants
 
-import "errors"
+import (
+	"errors"
+	"runtime"
+)
 
 const (
 	SetOperation    = 'S'
@@ -15,11 +18,12 @@ const (
 	MinimumNumberOfConnection = 5    // Minimum number of connections to the server
 	IntDefaultValue           = 0    // Default value for integers
 	DefaultPort               = 5000 // Default server port
-	DefaultNumberOfWorkers    = 15   // Default number of worker threads
 	BufferSizeTCP             = 4
 )
 
 var (
+	DefaultNumberOfWorkers = runtime.NumCPU() // Default number of worker threads
+
 	ObjectInserted = []byte("object inserted")
 	ObjectDeleted  = []byte("deleted")
 

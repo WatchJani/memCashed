@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+
 	"github.com/WatchJani/memCashed/cmd/server"
 )
 

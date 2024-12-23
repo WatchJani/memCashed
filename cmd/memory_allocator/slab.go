@@ -1,28 +1,15 @@
 package memory_allocator
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"net"
 	"sync"
 	"time"
 	"unsafe"
 
-	"github.com/WatchJani/memCashed/client"
 	"github.com/WatchJani/memCashed/cmd/constants"
 	"github.com/WatchJani/memCashed/cmd/link_list"
 	"github.com/WatchJani/memCashed/cmd/stack"
-)
-
-var (
-	// ErrOperationIsNotSupported is the error returned when an unsupported operation is attempted.
-	ErrOperationIsNotSupported = errors.New("operation is not supported")
-
-	// NoReq is a buffer used for reading unprocessed data when memory allocation fails.
-	HeaderSize        = 10
-	NoReq      []byte = make([]byte, MiB+HeaderSize) // Buffer to read unprocessed data
-
 )
 
 // SlabManager manages slabs, LRU (Least Recently Used) caches, and memory allocation.
@@ -111,7 +98,7 @@ func (s *SlabManager) GetSlab(payloadSize int, conn net.Conn) ([]byte, int, erro
 			conn.Write([]byte(err.Error()))
 
 			// and if I can't allocate memory to my server I still have to read the req to the end
-			_, err := conn.Read(NoReq)
+			_, err := conn.Read(constants.NoReq)
 			if err != nil {
 				return nil, -1, err
 			}
@@ -139,95 +126,6 @@ func TLLParser(ttl uint32) time.Time {
 	}
 
 	return time.Time{} // Return an empty time if TTL is 0
-}
-
-// Worker listens for transfer jobs and processes them based on the payload command.
-func (s *SlabManager) Worker() {
-	for payload := range s.JobCh {
-		switch payload.payload[0] {
-		case constants.SetOperation: // Command to store data
-			_, keySize, ttl, bodySize := client.Decode(payload.payload) // Decode the payload
-
-			bodyOffset := constants.HeaderSize + keySize
-			key := string(payload.payload[constants.HeaderSize:bodyOffset]) // Extract key from the payload
-
-			// Insert the key into the LRU cache
-			node := s.lru[payload.index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
-
-			// Store the key-value pair in the store with TTL
-			s.store.Store(key, Key{
-				field:   payload.payload[bodyOffset : bodyOffset+bodySize],
-				ttl:     TLLParser(ttl),
-				pointer: node,
-			})
-
-			if _, err := payload.conn.Write(constants.ObjectInserted); err != nil {
-				log.Println(err) // Log any errors that occur while writing to the connection
-			}
-		case constants.GetOperation: // Command to get data
-			_, keySize, _, _ := client.Decode(payload.payload)                                  // Decode the payload
-			key := string(payload.payload[constants.HeaderSize : constants.HeaderSize+keySize]) // Extract key from the payload
-
-			s.slabs[payload.index].freeList.Push(unsafe.Pointer(&payload.payload[0])) //delete our header space
-
-			// Fetch the value from the store
-			valueObject, isFound := s.store.Load(key)
-			if !isFound {
-				if _, err := payload.conn.Write(constants.ErrObjectNotFound); err != nil {
-					log.Println(err)
-				}
-				continue
-			}
-
-			value := valueObject.(Key)
-
-			// Check if the TTL has expired and delete the object if expired
-			if !value.ttl.IsZero() && time.Now().After(value.ttl) {
-				s.store.Delete(key)
-				s.lru[payload.index].Delete(value.pointer) // Remove the node from LRU
-				memoryPointer := value.pointer.GetPointer()
-				s.slabs[payload.index].freeList.Push(memoryPointer)
-
-				if _, err := payload.conn.Write(constants.ErrTimeExpire); err != nil {
-					log.Println(err)
-				}
-				continue
-			}
-			s.lru[payload.index].Read(value.pointer)
-
-			// Return the field data if found
-			if _, err := payload.conn.Write(value.field); err != nil {
-				log.Println(err)
-			}
-		case constants.DeleteOperation: // Command to delete data
-			_, keySize, _, _ := client.Decode(payload.payload) // Decode the payload
-			key := string(payload.payload[10 : 10+keySize])    // Extract key from the payload
-
-			s.slabs[payload.index].freeList.Push(unsafe.Pointer(&payload.payload[0])) //delete our header space
-
-			// Fetch and delete the object from the store
-			valueObject, isFound := s.store.Load(key)
-			if !isFound {
-				if _, err := payload.conn.Write(constants.ErrObjectNotFound); err != nil {
-					log.Println(err)
-				}
-				continue
-			}
-
-			value := valueObject.(Key)
-			s.store.Delete(key)
-
-			memoryPointer := value.pointer.GetPointer()
-
-			s.lru[payload.index].Delete(value.pointer) // Remove from LRU
-			s.slabs[payload.index].freeList.Push(memoryPointer)
-			if _, err := payload.conn.Write(constants.ObjectDeleted); err != nil {
-				log.Println(err)
-			}
-		default:
-			log.Println(ErrOperationIsNotSupported)
-		}
-	}
 }
 
 // GetIndex performs a binary search to find the appropriate slab index based on the data size.

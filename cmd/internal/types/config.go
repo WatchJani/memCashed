@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/WatchJani/memCashed/cmd/constants"
 	"github.com/WatchJani/memCashed/cmd/internal/cli"
 	"github.com/WatchJani/memCashed/cmd/memory_allocator"
 
@@ -11,13 +13,6 @@ import (
 )
 
 // Constant values used for memory operations and server configuration.
-const (
-	KiB                       = 1024 // 1 MiB in bytes
-	MinimumNumberOfConnection = 5           // Minimum number of connections to the server
-	IntDefaultValue           = 0           // Default value for integers
-	DefaultPort               = 5001        // Default server port
-	DefaultNumberOfWorkers    = 15          // Default number of worker threads
-)
 
 // Configuration structure containing server and memory details.
 type Config struct {
@@ -69,12 +64,12 @@ func (c *Config) MemoryAllocator() *memory_allocator.Allocator {
 	memorySize := c.MemoryAllocate
 
 	// If no memory size is defined, allocate a minimum of 1 MiB
-	if memorySize == IntDefaultValue {
+	if memorySize == constants.IntDefaultValue {
 		memorySize = 1 // can load at least 1 MiB
 	}
 
 	// Returns a new memory allocator with the specified memory size
-	return memory_allocator.New(memorySize * KiB)
+	return memory_allocator.New(memorySize * constants.KiB)
 }
 
 // Returns the default slabs with predefined capacities and maximum memory allocations.
@@ -103,7 +98,7 @@ func (c *Config) Slabs(allocator *memory_allocator.Allocator) []memory_allocator
 	slabs := c.DefaultSlab
 
 	// If no slabs are defined in the configuration, use the default slabs.
-	if len(c.DefaultSlab) == IntDefaultValue {
+	if len(c.DefaultSlab) == constants.IntDefaultValue {
 		slabs = DefaultSlabs()
 	}
 
@@ -122,8 +117,8 @@ func (c *Config) MaxConnection() int {
 	maxConnection := c.Server.MaxConnection
 
 	// If the configured value is less than the minimum allowed, set it to the minimum.
-	if maxConnection < MinimumNumberOfConnection {
-		maxConnection = MinimumNumberOfConnection
+	if maxConnection < constants.MinimumNumberOfConnection {
+		maxConnection = constants.MinimumNumberOfConnection
 	}
 
 	return maxConnection // Return the maximum number of connections
@@ -133,7 +128,7 @@ func (c *Config) MaxConnection() int {
 func (c *Config) Port() string {
 	port := c.Server.Port
 	if port < 1 {
-		port = DefaultPort //Default port
+		port = constants.DefaultPort //Default port
 	}
 
 	return fmt.Sprintf(":%d", port) // Format the port as a string (e.g., ":5001")
@@ -142,8 +137,8 @@ func (c *Config) Port() string {
 func (c *Config) NumberWorker() int {
 	numberOfWorker := c.NumberOfWorker
 	if numberOfWorker < 1 {
-		numberOfWorker = DefaultNumberOfWorkers
+		numberOfWorker = constants.DefaultNumberOfWorkers
 	}
 
-	return numberOfWorker	
+	return numberOfWorker
 }

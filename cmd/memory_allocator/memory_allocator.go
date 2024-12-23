@@ -1,15 +1,9 @@
 package memory_allocator
 
 import (
-	"errors"
 	"sync"
-)
 
-const MiB = 1024 * 1024
-
-// ErrNotEnoughSpace is the error returned when there is not enough space to allocate memory.
-var (
-	ErrNotEnoughSpace = errors.New("there is not enough space")
+	"github.com/WatchJani/memCashed/cmd/constants"
 )
 
 // Allocator is a memory allocator that manages a slice of bytes and keeps track of the next available index.
@@ -43,10 +37,10 @@ func (a *Allocator) AllocateBlock() ([]byte, error) {
 	defer a.Unlock()
 
 	start := a.next
-	end := start + MiB
+	end := start + constants.MiB
 
 	if !IsEnoughSpace(end, len(a.memory)) {
-		return nil, ErrNotEnoughSpace
+		return nil, constants.ErrNotEnoughSpace
 	}
 
 	a.next = end

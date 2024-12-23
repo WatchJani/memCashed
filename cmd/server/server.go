@@ -8,14 +8,9 @@ import (
 	"sync"
 
 	"github.com/WatchJani/memCashed/client"
+	"github.com/WatchJani/memCashed/cmd/constants"
 	"github.com/WatchJani/memCashed/cmd/internal/types"
 	"github.com/WatchJani/memCashed/cmd/memory_allocator"
-)
-
-const (
-	PayloadSizeLength = 4                       // Size of the payload length in bytes.
-	MiB               = 1024 * 1024             // Size of 1 MiB in bytes.
-	BufferSizeTCP     = MiB + PayloadSizeLength // Total buffer size including the payload length.
 )
 
 // Server represents a server that handles TCP connections, manages active connections,
@@ -52,13 +47,13 @@ func New() *Server {
 // and handles them concurrently. It also enforces a maximum connection limit.
 func (s *Server) Run() error {
 	// Start listening for incoming TCP connections on the specified address.
-	ls, err := net.Listen("tcp", s.Add)
+	ls, err := net.Listen(constants.TCP, s.Add)
 	if err != nil {
 		return err // Return error if the server fails to start listening.
 	}
 
 	// Ensure the listener is closed properly when the function ends.
-	defer Close(ls, "server is close")
+	defer Close(ls, constants.InfoServerClose)
 
 	// Infinite loop to accept and handle incoming connections.
 	for {
@@ -110,12 +105,12 @@ func Close(c io.Closer, msg string) {
 func (s *Server) HandleConn(conn net.Conn) {
 	// Ensure the connection is closed and the active connection count is reduced when done.
 	defer func() {
-		Close(conn, "connection is close")
+		Close(conn, constants.InfoConnectionClose)
 		s.decrease()
 	}()
 
 	// Buffer to hold the first 4 bytes, which indicates the payload size.
-	bufSize := make([]byte, 4)
+	bufSize := make([]byte, constants.BufferSizeTCP)
 
 	// Infinite loop to continuously read data from the connection.
 	for {
@@ -124,7 +119,7 @@ func (s *Server) HandleConn(conn net.Conn) {
 		if err != nil {
 			// If an error occurs during reading (excluding EOF), log it.
 			if err != io.EOF {
-				log.Println("Error reading from connection:", err)
+				log.Println(err)
 			}
 
 			break // Exit the loop if reading fails.
@@ -144,7 +139,7 @@ func (s *Server) HandleConn(conn net.Conn) {
 		// If an error occurs during reading the payload (excluding EOF), log it.
 		if err != nil {
 			if err != io.EOF {
-				log.Println("Error reading from connection:", err)
+				log.Println(err)
 			}
 
 			break // Exit the loop if reading fails.

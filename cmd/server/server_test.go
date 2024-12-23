@@ -9,17 +9,19 @@ import (
 	"github.com/WatchJani/memCashed/client"
 )
 
-const Port string = ":5000"
+const (
+	Port               = ":5000"
+	NumberOfConnection = 99
+)
 
-func BenchmarkSynchronous(b *testing.B) {
-	b.StopTimer()
+var (
+	PayloadKey        = []byte("super mario")
+	PayloadValue      = []byte("game")
+	PayloadTTLDefault = -1
+)
 
-	numberOfConnection := 99
-	SenderCh := make(chan []byte, numberOfConnection) // Buffered channel to prevent blocking
-	var wg sync.WaitGroup
-
-	// Workers
-	for i := 0; i < numberOfConnection; i++ {
+func Workers(SenderCh chan []byte, wg *sync.WaitGroup) {
+	for i := 0; i < NumberOfConnection; i++ {
 		conn, err := net.Dial("tcp", Port)
 		if err != nil {
 			log.Fatal(err)
@@ -46,9 +48,45 @@ func BenchmarkSynchronous(b *testing.B) {
 			}
 		}(conn)
 	}
+}
+
+func BenchmarkSynchronous(b *testing.B) {
+	b.StopTimer()
+
+	SenderCh := make(chan []byte) // Buffered channel to prevent blocking
+	var wg sync.WaitGroup
+
+	// Workers
+	Workers(SenderCh, &wg)
 
 	// Generate payload
-	dataPayload, err := client.Set([]byte("super mario"), []byte("game"), 2121321321)
+	dataPayload, err := client.Set(PayloadKey, PayloadValue, PayloadTTLDefault)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	b.StartTimer()
+
+	// Send data
+	for i := 0; i < b.N; i++ {
+		SenderCh <- dataPayload
+	}
+
+	close(SenderCh) // Close the channel to signal workers to stop
+	wg.Wait()       // Wait for all workers to finish
+}
+
+func BenchmarkSynchronousGet(b *testing.B) {
+	b.StopTimer()
+
+	SenderCh := make(chan []byte) // Buffered channel to prevent blocking
+	var wg sync.WaitGroup
+
+	// Workers
+	Workers(SenderCh, &wg)
+
+	// Generate payload
+	dataPayload, err := client.Get(PayloadKey)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/WatchJani/memCashed/client"
+	"github.com/WatchJani/memCashed/cmd/constants"
 	"github.com/WatchJani/memCashed/cmd/link_list"
 	"github.com/WatchJani/memCashed/cmd/stack"
 )
@@ -144,61 +145,70 @@ func TLLParser(ttl uint32) time.Time {
 func (s *SlabManager) Worker() {
 	for payload := range s.JobCh {
 		switch payload.payload[0] {
-		case 'S': // Command to store data
+		case constants.SetOperation: // Command to store data
 			_, keySize, ttl, bodySize := client.Decode(payload.payload) // Decode the payload
 
-			key := string(payload.payload[10 : 10+keySize]) // Extract key from the payload
+			bodyOffset := constants.HeaderSize + keySize
+			key := string(payload.payload[constants.HeaderSize:bodyOffset]) // Extract key from the payload
+
+			// Insert the key into the LRU cache
+			node := s.lru[payload.index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
 
 			// Store the key-value pair in the store with TTL
 			s.store.Store(key, Key{
-				field: payload.payload[10+keySize : 10+bodySize+keySize],
-				ttl:   TLLParser(ttl),
+				field:   payload.payload[bodyOffset : bodyOffset+bodySize],
+				ttl:     TLLParser(ttl),
+				pointer: node,
 			})
 
-			// Insert the key into the LRU cache
-			s.lru[payload.index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
-
-			if _, err := payload.conn.Write([]byte("object inserted")); err != nil {
+			if _, err := payload.conn.Write(constants.ObjectInserted); err != nil {
 				log.Println(err) // Log any errors that occur while writing to the connection
 			}
-		case 'G': // Command to get data
-			_, keySize, _, _ := client.Decode(payload.payload) // Decode the payload
-			key := string(payload.payload[10 : 10+keySize])    // Extract key from the payload
+		case constants.GetOperation: // Command to get data
+			_, keySize, _, _ := client.Decode(payload.payload)                                  // Decode the payload
+			key := string(payload.payload[constants.HeaderSize : constants.HeaderSize+keySize]) // Extract key from the payload
+
+			s.slabs[payload.index].freeList.Push(unsafe.Pointer(&payload.payload[0])) //delete our header space
 
 			// Fetch the value from the store
 			valueObject, isFound := s.store.Load(key)
 			if !isFound {
-				if _, err := payload.conn.Write([]byte("object not found")); err != nil {
+				if _, err := payload.conn.Write(constants.ErrObjectNotFound); err != nil {
 					log.Println(err)
 				}
 				continue
 			}
 
 			value := valueObject.(Key)
+
 			// Check if the TTL has expired and delete the object if expired
 			if !value.ttl.IsZero() && time.Now().After(value.ttl) {
 				s.store.Delete(key)
 				s.lru[payload.index].Delete(value.pointer) // Remove the node from LRU
-				if _, err := payload.conn.Write([]byte("time expire")); err != nil {
+				memoryPointer := value.pointer.GetPointer()
+				s.slabs[payload.index].freeList.Push(memoryPointer)
+
+				if _, err := payload.conn.Write(constants.ErrTimeExpire); err != nil {
 					log.Println(err)
 				}
 				continue
 			}
-
 			s.lru[payload.index].Read(value.pointer)
 
 			// Return the field data if found
 			if _, err := payload.conn.Write(value.field); err != nil {
 				log.Println(err)
 			}
-		case 'D': // Command to delete data
+		case constants.DeleteOperation: // Command to delete data
 			_, keySize, _, _ := client.Decode(payload.payload) // Decode the payload
 			key := string(payload.payload[10 : 10+keySize])    // Extract key from the payload
+
+			s.slabs[payload.index].freeList.Push(unsafe.Pointer(&payload.payload[0])) //delete our header space
 
 			// Fetch and delete the object from the store
 			valueObject, isFound := s.store.Load(key)
 			if !isFound {
-				if _, err := payload.conn.Write([]byte("object not found")); err != nil {
+				if _, err := payload.conn.Write(constants.ErrObjectNotFound); err != nil {
 					log.Println(err)
 				}
 				continue
@@ -211,7 +221,7 @@ func (s *SlabManager) Worker() {
 
 			s.lru[payload.index].Delete(value.pointer) // Remove from LRU
 			s.slabs[payload.index].freeList.Push(memoryPointer)
-			if _, err := payload.conn.Write([]byte("Deleted")); err != nil {
+			if _, err := payload.conn.Write(constants.ObjectDeleted); err != nil {
 				log.Println(err)
 			}
 		default:

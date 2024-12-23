@@ -69,7 +69,7 @@ func (c *Config) MemoryAllocator() *memory_allocator.Allocator {
 	}
 
 	// Returns a new memory allocator with the specified memory size
-	return memory_allocator.New(memorySize * constants.KiB)
+	return memory_allocator.New(memorySize * constants.MiB)
 }
 
 // Returns the default slabs with predefined capacities and maximum memory allocations.

@@ -11,7 +11,7 @@ server:
 # our program's launch, in order
 # to have full control over memory
 # (5GiB by default, defined in MiB)
-memory_for_allocate: 5242880
+memory_for_allocate: 5120
 
 #number_of_worker defines the number
 # of parallel processes within the
@@ -28,3 +28,4 @@ custom_slabs:
   #   max_allocate_memory: 0
   # - chunk_capacity: 128
   #   max_allocate_memory: 0
+  # ...

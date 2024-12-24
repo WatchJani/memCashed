@@ -32,7 +32,6 @@ func New(addr string, numberConnection int) *Driver {
 	return &Driver{
 		Addr:               addr,                    // Set address.
 		NumberOfConnection: numberConnection,        // Set the number of connections.
-		AsynchronousMode:   true,                    // Enable asynchronous mode by default.
 		PayloadCh:          make(chan Communicator), // Create a channel for sending payloads.
 	}
 }
@@ -40,10 +39,9 @@ func New(addr string, numberConnection int) *Driver {
 // Init initializes the Driver by creating a specified number of SingleConnection instances
 // and starting the Worker goroutines for each connection.
 func (d *Driver) Init() error {
-	communicator := d.PayloadCh
 	// Create and initialize each single connection.
 	for range d.NumberOfConnection {
-		singleConnection, err := NewSingleConnection(communicator, d.Addr)
+		singleConnection, err := NewSingleConnection(d.PayloadCh, d.Addr)
 		if err != nil {
 			return err // Return error if connection creation fails.
 		}

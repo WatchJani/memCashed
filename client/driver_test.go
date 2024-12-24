@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"log"
 	"testing"
 )
 
@@ -118,5 +119,25 @@ func TestEncode(t *testing.T) {
 func BenchmarkEncode(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		Encode('S', key, value, ttl)
+	}
+}
+
+func BenchmarkGetReq(b *testing.B) {
+	b.StopTimer()
+	driver := New(":5000", 20)
+
+	if err := driver.Init(); err != nil {
+		b.Error(err)
+	}
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		res, err := driver.SetReq(key, value, ttl)
+		if err != nil {
+			log.Println(err)
+		}
+
+		<-res
 	}
 }

@@ -59,16 +59,15 @@ func BenchmarkSynchronousSet(b *testing.B) {
 	// Workers
 	Workers(SenderCh, &wg)
 
-	// Generate payload
-	dataPayload, err := client.Set(PayloadKey, PayloadValue, PayloadTTLDefault)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	b.StartTimer()
 
 	// Send data
 	for i := 0; i < b.N; i++ {
+		dataPayload, err := client.Set(PayloadKey, PayloadValue, PayloadTTLDefault)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		SenderCh <- dataPayload
 	}
 

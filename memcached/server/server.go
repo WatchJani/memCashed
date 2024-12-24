@@ -7,8 +7,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/WatchJani/memCashed/client"
 	"github.com/WatchJani/memCashed/memcached/constants"
+	"github.com/WatchJani/memCashed/memcached/decoder"
 	"github.com/WatchJani/memCashed/memcached/internal/types"
 	"github.com/WatchJani/memCashed/memcached/memory_allocator"
 )
@@ -126,7 +126,7 @@ func (s *Server) HandleConn(conn net.Conn) {
 		}
 
 		// Decode the payload size from the received length bytes.
-		payloadSize := client.DecodeLength(bufSize)
+		payloadSize := decoder.DecodeLength(bufSize)
 
 		// Get a slab block and its index from the memory allocator.
 		slabBlock, index, err := s.Manager.GetSlab(payloadSize, conn)

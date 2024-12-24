@@ -5,8 +5,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/WatchJani/memCashed/client"
 	"github.com/WatchJani/memCashed/memcached/constants"
+	"github.com/WatchJani/memCashed/memcached/decoder"
 	"github.com/WatchJani/memCashed/memcached/link_list"
 )
 
@@ -31,7 +31,7 @@ func (s *SlabManager) Worker() {
 }
 
 func (s *SlabManager) SetOperationFn(payload Transfer) {
-	_, keySize, ttl, bodySize := client.Decode(payload.payload) // Decode the payload
+	_, keySize, ttl, bodySize := decoder.Decode(payload.payload) // Decode the payload
 
 	bodyOffset := constants.HeaderSize + keySize
 	key := string(payload.payload[constants.HeaderSize:bodyOffset]) // Extract key from the payload
@@ -52,7 +52,7 @@ func (s *SlabManager) SetOperationFn(payload Transfer) {
 }
 
 func (s *SlabManager) GetOperationFn(payload Transfer) {
-	_, keySize, _, _ := client.Decode(payload.payload)                                  // Decode the payload
+	_, keySize, _, _ := decoder.Decode(payload.payload)                                 // Decode the payload
 	key := string(payload.payload[constants.HeaderSize : constants.HeaderSize+keySize]) // Extract key from the payload
 
 	s.slabs[payload.index].freeList.Push(unsafe.Pointer(&payload.payload[0])) //delete our header space
@@ -89,7 +89,7 @@ func (s *SlabManager) GetOperationFn(payload Transfer) {
 }
 
 func (s *SlabManager) DeleteOperationFn(payload Transfer) {
-	_, keySize, _, _ := client.Decode(payload.payload)                                  // Decode the payload
+	_, keySize, _, _ := decoder.Decode(payload.payload)                                 // Decode the payload
 	key := string(payload.payload[constants.HeaderSize : constants.HeaderSize+keySize]) // Extract key from the payload
 
 	s.slabs[payload.index].freeList.Push(unsafe.Pointer(&payload.payload[0])) //delete our header space

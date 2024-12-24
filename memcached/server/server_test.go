@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/WatchJani/memCashed/client"
+	client "github.com/WatchJani/memCashed/client/driver"
 )
 
 const (

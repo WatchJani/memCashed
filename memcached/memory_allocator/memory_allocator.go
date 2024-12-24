@@ -3,7 +3,7 @@ package memory_allocator
 import (
 	"sync"
 
-	"github.com/WatchJani/memCashed/memcached/constants"
+	"github.com/WatchJani/memCashed/constants"
 )
 
 // Allocator is a memory allocator that manages a slice of bytes and keeps track of the next available index.

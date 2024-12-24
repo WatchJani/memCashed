@@ -124,20 +124,23 @@ func BenchmarkEncode(b *testing.B) {
 
 func BenchmarkGetReq(b *testing.B) {
 	b.StopTimer()
-	driver := New(":5000", 20)
+	driver := New(":5000", 15)
 
 	if err := driver.Init(); err != nil {
 		b.Error(err)
+		return
 	}
 
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		res, err := driver.SetReq(key, value, ttl)
-		if err != nil {
-			log.Println(err)
-		}
+		go func() {
+			res, err := driver.SetReq(key, value, ttl)
+			if err != nil {
+				log.Println(err)
+			}
 
-		<-res
+			<-res
+		}()
 	}
 }

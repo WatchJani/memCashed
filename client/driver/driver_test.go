@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"log"
 	"testing"
+
+	p "github.com/WatchJani/memCashed/tree/master/client/parser"
 )
 
 var (
@@ -82,7 +84,7 @@ func TestDeleteReq(t *testing.T) {
 	}
 
 	get := string(<-res)
-	expected := "Deleted"
+	expected := "deleted"
 
 	if get != expected {
 		t.Errorf("expected: %s | get: %s", expected, get)
@@ -104,7 +106,7 @@ func TestDeleteReq(t *testing.T) {
 }
 
 func TestEncode(t *testing.T) {
-	get, err := Encode('S', key, value, ttl)
+	get, err := p.Encode('S', key, value, ttl)
 	if err != nil {
 		t.Fail()
 	}
@@ -118,7 +120,7 @@ func TestEncode(t *testing.T) {
 
 func BenchmarkEncode(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Encode('S', key, value, ttl)
+		p.Encode('S', key, value, ttl)
 	}
 }
 

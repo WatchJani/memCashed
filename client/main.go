@@ -4,7 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	driver "root/driver"
+
+	driver "github.com/WatchJani/memCashed/tree/master/client/driver"
 )
 
 func main() {

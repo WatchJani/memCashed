@@ -3,6 +3,8 @@ package client
 import (
 	"log"
 	"net"
+
+	p "github.com/WatchJani/memCashed/tree/master/client/parser"
 )
 
 // Driver struct represents a client driver responsible for managing connections.
@@ -99,17 +101,17 @@ func (s *SingleConnection) Worker() {
 
 // SetReq sends a request to set a key-value pair with a TTL (Time-To-Live) on the server.
 func (d *Driver) SetReq(key, value []byte, ttl int) (<-chan []byte, error) {
-	return d.OperationReq(Set(key, value, ttl))
+	return d.OperationReq(p.Set(key, value, ttl))
 }
 
 // GetReq sends a request to get a value by key from the server
 func (d *Driver) GetReq(key []byte) (<-chan []byte, error) {
-	return d.OperationReq(Get(key))
+	return d.OperationReq(p.Get(key))
 }
 
 // DeleteReq sends a request to delete a key-value pair from the server.
 func (d *Driver) DeleteReq(key []byte) (<-chan []byte, error) {
-	return d.OperationReq(Delete(key))
+	return d.OperationReq(p.Delete(key))
 }
 
 // OperationReq sends the payload request to the Driver's PayloadCh and returns a response channel.

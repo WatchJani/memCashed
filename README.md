@@ -32,3 +32,56 @@ This is a high-performance in-memory database designed to efficiently store and 
 - The system is optimized for speed and efficiency, using in-memory storage and an efficient custom memory allocator.
 - LRU ensures that only the most frequently accessed data remains in memory, which improves performance during heavy workloads.
 - The ability to fully utilize all CPU cores provides excellent parallelization and enhances the overall performance of the system as the data or workload grows.
+
+
+## Example Usage
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+
+	driver "github.com/WatchJani/memCashed/tree/master/client/driver"
+)
+
+func main() {
+	driver, err := driver.New(":5000", 15)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
+	store := InitStore(driver)
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/set", store.Set)
+
+	http.ListenAndServe(":5001", mux)
+}
+
+type InMemoryStore struct {
+	*driver.Driver
+}
+
+func InitStore(driver *driver.Driver) InMemoryStore {
+	return InMemoryStore{
+		Driver: driver,
+	}
+}
+
+func (s *InMemoryStore) Set(w http.ResponseWriter, r *http.Request) {
+	resMsg, err := s.SetReq([]byte("key"), []byte("value"), -1)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	dbResponse := <-resMsg
+
+	_ = dbResponse
+}
+```

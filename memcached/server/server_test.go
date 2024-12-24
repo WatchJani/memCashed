@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	p "github.com/WatchJani/memCashed/parser"
+	p "github.com/WatchJani/memCashed/tree/master/memcached/parser"
 )
 
 const (

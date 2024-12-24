@@ -5,9 +5,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/WatchJani/memCashed/constants"
-	"github.com/WatchJani/memCashed/parser"
-	"github.com/WatchJani/memCashed/link_list"
+	"github.com/WatchJani/memCashed/tree/master/memcached/constants"
+	"github.com/WatchJani/memCashed/tree/master/memcached/parser"
+	"github.com/WatchJani/memCashed/tree/master/memcached/link_list"
 )
 
 func ParseOperation(payload []byte) byte {

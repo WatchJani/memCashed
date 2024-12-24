@@ -7,10 +7,10 @@ import (
 	"net"
 	"sync"
 
-	"github.com/WatchJani/memCashed/constants"
-	"github.com/WatchJani/memCashed/internal/types"
-	"github.com/WatchJani/memCashed/memory_allocator"
-	decoder "github.com/WatchJani/memCashed/parser"
+	"github.com/WatchJani/memCashed/tree/master/memcached/constants"
+	"github.com/WatchJani/memCashed/tree/master/memcached/internal/types"
+	"github.com/WatchJani/memCashed/tree/master/memcached/memory_allocator"
+	decoder "github.com/WatchJani/memCashed/tree/master/memcached/parser"
 )
 
 // Server represents a server that handles TCP connections, manages active connections,

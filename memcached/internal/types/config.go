@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/WatchJani/memCashed/cmd/constants"
-	"github.com/WatchJani/memCashed/cmd/internal/cli"
-	"github.com/WatchJani/memCashed/cmd/memory_allocator"
+	"github.com/WatchJani/memCashed/memcached/constants"
+	"github.com/WatchJani/memCashed/memcached/internal/cli"
+	"github.com/WatchJani/memCashed/memcached/memory_allocator"
 
 	"gopkg.in/yaml.v3"
 )

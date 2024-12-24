@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/WatchJani/memCashed/client"
-	"github.com/WatchJani/memCashed/cmd/constants"
-	"github.com/WatchJani/memCashed/cmd/internal/types"
-	"github.com/WatchJani/memCashed/cmd/memory_allocator"
+	"github.com/WatchJani/memCashed/memcached/constants"
+	"github.com/WatchJani/memCashed/memcached/internal/types"
+	"github.com/WatchJani/memCashed/memcached/memory_allocator"
 )
 
 // Server represents a server that handles TCP connections, manages active connections,

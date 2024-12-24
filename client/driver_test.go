@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -98,5 +99,24 @@ func TestDeleteReq(t *testing.T) {
 
 	if get != expected {
 		t.Errorf("expected: %s | get: %s", expected, get)
+	}
+}
+
+func TestEncode(t *testing.T) {
+	get, err := Encode('S', key, value, ttl)
+	if err != nil {
+		t.Fail()
+	}
+
+	want := []byte{18, 0, 0, 0, 83, 3, 255, 255, 255, 255, 5, 0, 0, 0, 107, 101, 121, 118, 97, 108, 117, 101}
+
+	if !bytes.Equal(get, want) {
+		t.Errorf("wanted %b | get %b", want, get)
+	}
+}
+
+func BenchmarkEncode(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Encode('S', key, value, ttl)
 	}
 }

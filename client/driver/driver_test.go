@@ -13,9 +13,9 @@ var (
 )
 
 func TestSetReq(t *testing.T) {
-	driver := New(":5000", 15)
+	driver, err := New(":5000", 15)
 
-	if err := driver.Init(); err != nil {
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -42,9 +42,9 @@ func Store(driver *Driver) error {
 }
 
 func TestGetReq(t *testing.T) {
-	driver := New(":5000", 15)
+	driver, err := New(":5000", 15)
 
-	if err := driver.Init(); err != nil {
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -66,9 +66,9 @@ func TestGetReq(t *testing.T) {
 }
 
 func TestDeleteReq(t *testing.T) {
-	driver := New(":5000", 15)
+	driver, err := New(":5000", 15)
 
-	if err := driver.Init(); err != nil {
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -124,9 +124,9 @@ func BenchmarkEncode(b *testing.B) {
 
 func BenchmarkGetReq(b *testing.B) {
 	b.StopTimer()
-	driver := New(":5000", 15)
+	driver, err := New(":5000", 15)
 
-	if err := driver.Init(); err != nil {
+	if err != nil {
 		b.Error(err)
 		return
 	}

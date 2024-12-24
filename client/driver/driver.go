@@ -28,12 +28,14 @@ func NewCommunicator(payload []byte, response chan []byte) Communicator {
 }
 
 // New creates and returns a new Driver instance with the provided address and number of connections.
-func New(addr string, numberConnection int) *Driver {
-	return &Driver{
+func New(addr string, numberConnection int) (*Driver, error) {
+	d := &Driver{
 		Addr:               addr,                    // Set address.
 		NumberOfConnection: numberConnection,        // Set the number of connections.
 		PayloadCh:          make(chan Communicator), // Create a channel for sending payloads.
 	}
+
+	return d, d.Init()
 }
 
 // Init initializes the Driver by creating a specified number of SingleConnection instances

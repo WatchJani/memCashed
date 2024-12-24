@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	client "github.com/WatchJani/memCashed/client/driver"
+	p "github.com/WatchJani/memCashed/memcached/parser"
 )
 
 const (
@@ -63,7 +63,7 @@ func BenchmarkSynchronousSet(b *testing.B) {
 
 	// Send data
 	for i := 0; i < b.N; i++ {
-		dataPayload, err := client.Set(PayloadKey, PayloadValue, PayloadTTLDefault)
+		dataPayload, err := p.Set(PayloadKey, PayloadValue, PayloadTTLDefault)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -85,7 +85,7 @@ func BenchmarkSynchronousGet(b *testing.B) {
 	Workers(SenderCh, &wg)
 
 	// Generate payload
-	dataPayload, err := client.Get(PayloadKey)
+	dataPayload, err := p.Get(PayloadKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func BenchmarkSynchronousDelete(b *testing.B) {
 	Workers(SenderCh, &wg)
 
 	// Generate payload
-	dataPayload, err := client.Delete(PayloadKey)
+	dataPayload, err := p.Delete(PayloadKey)
 	if err != nil {
 		log.Fatal(err)
 	}

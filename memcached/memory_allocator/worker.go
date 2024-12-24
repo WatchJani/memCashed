@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/WatchJani/memCashed/memcached/constants"
-	"github.com/WatchJani/memCashed/memcached/decoder"
+	"github.com/WatchJani/memCashed/memcached/parser"
 	"github.com/WatchJani/memCashed/memcached/link_list"
 )
 

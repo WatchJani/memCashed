@@ -34,7 +34,7 @@ This is a high-performance in-memory database designed to efficiently store and 
 - The ability to fully utilize all CPU cores provides excellent parallelization and enhances the overall performance of the system as the data or workload grows.
 
 
-# Installation Guide for the Go Server
+# Installation Guide for the Go memCached Server
 
 This guide will walk you through the steps to install and run the memCached server. 
 
@@ -64,6 +64,21 @@ This guide will walk you through the steps to install and run the memCached serv
     ./memcached
     ```
 
+# Go Driver Installation and Usage
+
+A specific driver written for the Go programming language allows seamless integration with the server. Here's how to add it to your project and use it effectively.
+
+---
+
+## Adding the Driver to Your Project
+
+To include the driver in your project, use the following command:
+
+```bash
+go get github.com/WatchJani/memCashed/client
+```
+
+
 ## Example Usage
 
 ```go
@@ -74,7 +89,7 @@ import (
 	"net/http"
 	"os"
 
-	driver "github.com/WatchJani/memCashed/tree/master/client/driver"
+	driver "github.com/WatchJani/memCashed/client/driver"
 )
 
 func main() {

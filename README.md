@@ -64,6 +64,36 @@ This guide will walk you through the steps to install and run the memCached serv
     ./memcached
     ```
 
+
+# How the Server Works
+
+The server uses a multi-threaded architecture to efficiently handle client requests and execute operations. Here's a brief explanation:
+
+1. **Connection Handling**:  
+   Each new connection creates a dedicated thread that parses and processes incoming requests.
+
+2. **Worker Pool**:  
+   Parsed requests are sent to a pool of workers. These workers are responsible for performing the actual operations, such as reading, writing, or deleting data.
+
+3. **Optimized Workflow**:  
+   This separation between connection handling and request execution ensures better performance and scalability.
+
+---
+
+## Architecture Diagram
+
+Below is a simplified representation of how the server processes requests:
+
+![Server Architecture Diagram](https://github.com/WatchJani/memCashed/blob/master/assets/server.png)
+
+1. **Threads**: Handle client connections and parse requests.
+2. **Workers**: Perform the actual operations based on parsed requests.
+
+---
+
+This design allows the server to handle multiple requests concurrently while ensuring efficient resource utilization.
+
+
 # Go Driver Installation and Usage
 
 A specific driver written for the Go programming language allows seamless integration with the server. Here's how to add it to your project and use it effectively.

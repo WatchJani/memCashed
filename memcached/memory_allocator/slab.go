@@ -7,9 +7,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/WatchJani/memCashed/tree/master/memcached/constants"
-	"github.com/WatchJani/memCashed/tree/master/memcached/link_list"
-	"github.com/WatchJani/memCashed/tree/master/memcached/stack"
+	"github.com/WatchJani/memCashed/memcached/constants"
+	"github.com/WatchJani/memCashed/memcached/link_list"
+	"github.com/WatchJani/memCashed/memcached/stack"
 )
 
 // SlabManager manages slabs, LRU (Least Recently Used) caches, and memory allocation.

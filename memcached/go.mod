@@ -1,4 +1,4 @@
-module github.com/WatchJani/memCashed/tree/master/memcached
+module github.com/WatchJani/memCashed/memcached
 
 go 1.22.0
 

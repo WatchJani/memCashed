@@ -34,6 +34,36 @@ This is a high-performance in-memory database designed to efficiently store and 
 - The ability to fully utilize all CPU cores provides excellent parallelization and enhances the overall performance of the system as the data or workload grows.
 
 
+# Installation Guide for the Go Server
+
+This guide will walk you through the steps to install and run the memCached server. 
+
+## Prerequisites
+
+- Ensure you have **Golang** installed on your system. You can download it from [golang.org](https://golang.org).
+- Optionally, have `make` installed for building the project.
+
+---
+
+## Installation Steps
+
+1. **Download the Server**
+
+   Use `go get` to fetch the server code from the repository:
+   ```bash
+   go get github.com/WatchJani/memCashed/memcached
+   ```
+
+2. **Build the Executable**
+	Use the `make` command to build the executable:
+	```bash
+    make build
+    ```
+3. **Run the Server**
+	```bash
+    ./memcached
+    ```
+
 ## Example Usage
 
 ```go

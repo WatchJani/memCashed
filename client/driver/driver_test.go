@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	p "github.com/WatchJani/memCashed/tree/master/client/parser"
+	p "github.com/WatchJani/memCashed/client/parser"
 )
 
 var (

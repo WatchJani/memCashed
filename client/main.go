@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	driver "github.com/WatchJani/memCashed/tree/master/client/driver"
+	driver "github.com/WatchJani/memCashed/client/driver"
 )
 
 func main() {

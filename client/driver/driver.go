@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 
-	p "github.com/WatchJani/memCashed/tree/master/client/parser"
+	p "github.com/WatchJani/memCashed/client/parser"
 )
 
 // Driver struct represents a client driver responsible for managing connections.

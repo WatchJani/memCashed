@@ -9,3 +9,6 @@ benchmark_test:
 	@go test ./server -bench BenchmarkSynchronousSet -benchmem && \
 	go test ./server -bench BenchmarkSynchronousGet -benchmem && \
 	go test ./server -bench BenchmarkSynchronousDelete -benchmem
+
+build:
+	go build -o memcached

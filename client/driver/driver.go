@@ -94,8 +94,10 @@ func (s *SingleConnection) Worker() {
 			continue
 		}
 
+		response := make([]byte, n)
+		copy(response, readBuffer[:n])
 		// Send the received data back through the response channel.
-		payload.response <- readBuffer[:n]
+		payload.response <- response
 	}
 }
 

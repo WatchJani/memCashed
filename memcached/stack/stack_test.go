@@ -16,3 +16,12 @@ func BenchmarkCustom(b *testing.B) {
 		stack.Clear()
 	}
 }
+
+func BenchmarkInsert(b *testing.B) {
+	b.StopTimer()
+	stack := New[int](TEST_INPUT)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		stack.Push(i)
+	}
+}

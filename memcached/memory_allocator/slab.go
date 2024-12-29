@@ -2,6 +2,7 @@ package memory_allocator
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -23,9 +24,9 @@ type SlabManager struct {
 
 // Transfer represents a data payload and connection information for a transfer task.
 type Transfer struct {
-	payload []byte   // Data payload
-	conn    net.Conn // Network connection
-	index   int      // Index of the slab category
+	payload []byte    // Data payload
+	conn    io.Writer // Network connection
+	index   int       // Index of the slab category
 }
 
 // Key represents a stored object with its field, TTL (Time-To-Live), and a pointer to its node in the LRU list.
@@ -36,7 +37,7 @@ type Key struct {
 }
 
 // NewTransfer creates a new Transfer object with the specified payload, index, and connection.
-func NewTransfer(payload []byte, index int, conn net.Conn) Transfer {
+func NewTransfer(payload []byte, index int, conn io.Writer) Transfer { //Connection -> io.writer
 	return Transfer{
 		payload: payload,
 		conn:    conn,

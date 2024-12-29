@@ -6,8 +6,8 @@ import (
 	"unsafe"
 
 	"github.com/WatchJani/memCashed/memcached/constants"
-	"github.com/WatchJani/memCashed/memcached/parser"
 	"github.com/WatchJani/memCashed/memcached/link_list"
+	decoder "github.com/WatchJani/memCashed/memcached/parser"
 )
 
 func ParseOperation(payload []byte) byte {
@@ -30,6 +30,20 @@ func (s *SlabManager) Worker() {
 	}
 }
 
+// test usage
+func (s *SlabManager) chooseOperation(payload Transfer) {
+	switch ParseOperation(payload.payload) {
+	case constants.SetOperation: // Command to store data
+		s.SetOperationFn(payload)
+	case constants.GetOperation: // Command to get data
+		s.GetOperationFn(payload)
+	case constants.DeleteOperation: // Command to delete data
+		s.DeleteOperationFn(payload)
+	default:
+		log.Println(constants.ErrOperationIsNotSupported)
+	}
+}
+
 func (s *SlabManager) SetOperationFn(payload Transfer) {
 	_, keySize, ttl, bodySize := decoder.Decode(payload.payload) // Decode the payload
 
@@ -40,6 +54,7 @@ func (s *SlabManager) SetOperationFn(payload Transfer) {
 	node := s.lru[payload.index].Inset(link_list.NewValue(unsafe.Pointer(&payload.payload[0]), key))
 
 	// Store the key-value pair in the store with TTL
+
 	s.store.Store(key, Key{
 		field:   payload.payload[bodyOffset : bodyOffset+bodySize],
 		ttl:     TLLParser(ttl),

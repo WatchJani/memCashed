@@ -1,4 +1,4 @@
-package decoder
+package parser
 
 func DecodeLength(size []byte) int {
 	return int(LittleEndianDecode(size))

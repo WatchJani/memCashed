@@ -1,4 +1,4 @@
-package decoder
+package parser
 
 func LittleEndianDecode(payload []byte) uint32 {
 	return uint32(payload[0]) |

@@ -1,4 +1,4 @@
-package decoder
+package parser
 
 var EmptyByte []byte = []byte{}
 

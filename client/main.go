@@ -1,25 +1,27 @@
 package main
 
 import (
+	"log"
 	"net/http"
+	"os"
 
 	driver "github.com/WatchJani/memCashed/client/driver"
 )
 
 func main() {
-	// driver, err := driver.New(":5000", 15)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	os.Exit(1)
-	// }
+	driver, err := driver.New()
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 
-	// store := InitStore(driver)
+	store := InitStore(driver)
 
-	// mux := http.NewServeMux()
+	mux := http.NewServeMux()
 
-	// mux.HandleFunc("/set", store.Set)
+	mux.HandleFunc("/set", store.Set)
 
-	// http.ListenAndServe(":5001", mux)
+	http.ListenAndServe(":5001", mux)
 }
 
 type InMemoryStore struct {

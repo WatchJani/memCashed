@@ -1,6 +1,8 @@
 package client
 
 import (
+	"hash"
+	"hash/fnv"
 	"log"
 	"net"
 
@@ -8,12 +10,17 @@ import (
 	p "github.com/WatchJani/memCashed/client/parser"
 )
 
-// Driver struct represents a client driver responsible for managing connections.
+// Connection struct represents a client driver responsible for managing connections.
+type Connection struct {
+	Addr               string // Address to connect to.
+	NumberOfConnection int    // Number of concurrent connections to establish.
+	// AsynchronousMode   bool              // Flag indicating whether to use asynchronous mode.
+	PayloadCh chan Communicator // Channel used for sending payloads for communication.
+}
+
 type Driver struct {
-	Addr               string            // Address to connect to.
-	NumberOfConnection int               // Number of concurrent connections to establish.
-	AsynchronousMode   bool              // Flag indicating whether to use asynchronous mode.
-	PayloadCh          chan Communicator // Channel used for sending payloads for communication.
+	hash.Hash32
+	Conn []Connection
 }
 
 // Communicator struct represents a payload and response channel for communication.
@@ -30,11 +37,25 @@ func NewCommunicator(payload []byte, response chan []byte) Communicator {
 	}
 }
 
-// New creates and returns a new Driver instance with the provided address and number of connections.
-func New(addr string, numberConnection int) (*Driver, error) {
-	_ = types.LoadConfiguration()
+func New() (*Driver, error) {
+	configuration := types.LoadConfiguration()
+	connections := make([]Connection, len(configuration.Server))
 
-	d := &Driver{
+	for index, connection := range configuration.Server {
+		con, err := NewConnection(connection.IpAddr, connection.NumberOfConnection)
+		if err != nil {
+			return nil, err
+		}
+
+		connections[index] = con
+	}
+
+	return &Driver{fnv.New32a(), connections}, nil
+}
+
+// NewConnection creates and returns a new Driver instance with the provided address and number of connections.
+func NewConnection(addr string, numberConnection int) (Connection, error) {
+	d := Connection{
 		Addr:               addr,                    // Set address.
 		NumberOfConnection: numberConnection,        // Set the number of connections.
 		PayloadCh:          make(chan Communicator), // Create a channel for sending payloads.
@@ -45,7 +66,7 @@ func New(addr string, numberConnection int) (*Driver, error) {
 
 // Init initializes the Driver by creating a specified number of SingleConnection instances
 // and starting the Worker goroutines for each connection.
-func (d *Driver) Init() error {
+func (d *Connection) Init() error {
 	// Create and initialize each single connection.
 	for range d.NumberOfConnection {
 		singleConnection, err := NewSingleConnection(d.PayloadCh, d.Addr)
@@ -106,21 +127,39 @@ func (s *SingleConnection) Worker() {
 
 // SetReq sends a request to set a key-value pair with a TTL (Time-To-Live) on the server.
 func (d *Driver) SetReq(key, value []byte, ttl int) (<-chan []byte, error) {
-	return d.OperationReq(p.Set(key, value, ttl))
+	n, err := d.Write(key)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := p.Set(key, value, ttl)
+	return d.OperationReq(payload, n%len(d.Conn), err)
 }
 
 // GetReq sends a request to get a value by key from the server
 func (d *Driver) GetReq(key []byte) (<-chan []byte, error) {
-	return d.OperationReq(p.Get(key))
+	n, err := d.Write(key)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := p.Get(key)
+	return d.OperationReq(payload, n%len(d.Conn), err)
 }
 
 // DeleteReq sends a request to delete a key-value pair from the server.
 func (d *Driver) DeleteReq(key []byte) (<-chan []byte, error) {
-	return d.OperationReq(p.Delete(key))
+	n, err := d.Write(key)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := p.Delete(key)
+	return d.OperationReq(payload, n%len(d.Conn), err)
 }
 
 // OperationReq sends the payload request to the Driver's PayloadCh and returns a response channel.
-func (d *Driver) OperationReq(payload []byte, err error) (<-chan []byte, error) {
+func (d *Driver) OperationReq(payload []byte, route int, err error) (<-chan []byte, error) {
 	if err != nil {
 		return nil, err // Return error if the operation failed.
 	}
@@ -129,7 +168,7 @@ func (d *Driver) OperationReq(payload []byte, err error) (<-chan []byte, error) 
 	newResponse := make(chan []byte)
 
 	// Send the payload and response channel to the PayloadCh channel.
-	d.PayloadCh <- NewCommunicator(payload, newResponse)
+	d.Conn[route].PayloadCh <- NewCommunicator(payload, newResponse)
 
 	return newResponse, nil // Return the response channel.
 }

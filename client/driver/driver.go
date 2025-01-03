@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/WatchJani/memCashed/client/internal/types"
 	p "github.com/WatchJani/memCashed/client/parser"
 )
 
@@ -31,6 +32,8 @@ func NewCommunicator(payload []byte, response chan []byte) Communicator {
 
 // New creates and returns a new Driver instance with the provided address and number of connections.
 func New(addr string, numberConnection int) (*Driver, error) {
+	_ = types.LoadConfiguration()
+
 	d := &Driver{
 		Addr:               addr,                    // Set address.
 		NumberOfConnection: numberConnection,        // Set the number of connections.
